@@ -1,0 +1,8 @@
+/work/
+/.venv/
+__pycache__/
+*.py[cod]
+/output/GTHAI.pre-*.COM
+*.OBJ
+*.MAP
+*.LST
