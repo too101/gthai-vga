@@ -1,0 +1,103 @@
+{
+  "environment": {
+    "core": "normal",
+    "cpu": "386",
+    "cycles": 10000,
+    "repetitions": 2,
+    "scale": 3,
+    "timer": "BIOS tick",
+    "tick_seconds": 0.05492540115422458
+  },
+  "cases": {
+    "copy19": 1500000,
+    "compose_thai": 750000,
+    "draw_ascii": 600000,
+    "draw_thai": 300000
+  },
+  "samples": {
+    "GTHAI": [
+      {
+        "case": "copy19",
+        "repeat": 0,
+        "ticks": 79
+      },
+      {
+        "case": "compose_thai",
+        "repeat": 0,
+        "ticks": 108
+      },
+      {
+        "case": "draw_ascii",
+        "repeat": 0,
+        "ticks": 121
+      },
+      {
+        "case": "draw_thai",
+        "repeat": 0,
+        "ticks": 131
+      },
+      {
+        "case": "copy19",
+        "repeat": 1,
+        "ticks": 79
+      },
+      {
+        "case": "compose_thai",
+        "repeat": 1,
+        "ticks": 108
+      },
+      {
+        "case": "draw_ascii",
+        "repeat": 1,
+        "ticks": 121
+      },
+      {
+        "case": "draw_thai",
+        "repeat": 1,
+        "ticks": 131
+      }
+    ],
+    "GTHAI386": [
+      {
+        "case": "copy19",
+        "repeat": 0,
+        "ticks": 63
+      },
+      {
+        "case": "compose_thai",
+        "repeat": 0,
+        "ticks": 83
+      },
+      {
+        "case": "draw_ascii",
+        "repeat": 0,
+        "ticks": 118
+      },
+      {
+        "case": "draw_thai",
+        "repeat": 0,
+        "ticks": 119
+      },
+      {
+        "case": "copy19",
+        "repeat": 1,
+        "ticks": 63
+      },
+      {
+        "case": "compose_thai",
+        "repeat": 1,
+        "ticks": 83
+      },
+      {
+        "case": "draw_ascii",
+        "repeat": 1,
+        "ticks": 118
+      },
+      {
+        "case": "draw_thai",
+        "repeat": 1,
+        "ticks": 119
+      }
+    ]
+  }
+}

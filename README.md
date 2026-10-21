@@ -33,6 +33,8 @@ The original **VTHAI** was created by **Wichai Patipaporn**. **Gary Butler** rec
 
 The revised fonts combine and adapt glyphs from **AxTHAI**, **ThaiPro**, and **AST BIOS Font**. Additional fixes improve Microsoft EDIT compatibility, screen preservation and mode switching with Norton Commander, and shading-character detection. The current defaults are **Epson printing** and **two-column vowel compensation**.
 
+Both executables provide the same features and fonts; load only one at a time. The 386 build remains a 16-bit DOS real-mode program, uses 32-bit instructions for glyph copying and composition, and preserves the interrupted program’s upper register bits. VGA drawing and latch scrolling remain byte-based. In a controlled DOSBox-X comparison on the same emulated 386, it reduced Thai composition time by **23.1%** and composed Thai drawing time by **9.2%**. These are emulator microbenchmarks, not real-hardware measurements; see the [benchmark report](docs/BENCHMARK.md).
+
 ## ความสามารถ
 
 - แสดงข้อความ 80 คอลัมน์ × 25 แถว รองรับโหมดอังกฤษ ไทย 8 บรรทัด และไทย 25 บรรทัด
@@ -76,6 +78,8 @@ The revised fonts combine and adapt glyphs from **AxTHAI**, **ThaiPro**, and **A
 |---|---|---|
 | `output/GTHAI.COM` | 8086 ขึ้นไป | คำสั่ง 16-bit |
 | `output/GTHAI386.COM` | 386 ขึ้นไป | ใช้ EAX ผสมครั้งละ 32-bit |
+
+ทั้งสองรุ่นมีความสามารถ ฟอนต์ และการตั้งค่าเหมือนกัน เลือก `GTHAI.COM` สำหรับ 8086/8088/186/286 หรือเลือก `GTHAI386.COM` สำหรับ 386 ขึ้นไปที่ต้องการส่วนผสมฟอนต์ที่เร็วขึ้น ทั้งสองรุ่นต้องใช้การ์ด VGA
 
 ติดตั้งเพียงตัวเดียว โดยรุ่นปกติเรียก:
 
@@ -149,7 +153,10 @@ python tests/run_all.py
 | `fonts/` | ฟอนต์ที่ฝังในโปรแกรม |
 | `output/GTHAI.COM` | โปรแกรม DOS สำหรับ 8086 ขึ้นไป |
 | `output/GTHAI386.COM` | โปรแกรม DOS สำหรับ 386 ขึ้นไป |
-| `tests/` | ชุดทดสอบ |
+| `tests/` | ชุดทดสอบทั้ง GTHAI และ GTHAI386 |
+| `tools/benchmark_dosbox.py` | เครื่องมือเทียบความเร็วทั้งสองรุ่นบน DOSBox-X |
+| `docs/BENCHMARK.md` | วิธีวัดเวลา ผลทดสอบ และข้อจำกัด |
+| `docs/benchmarks/` | ผลวัดดิบสำหรับตรวจสอบ |
 | `docs/images/` | ภาพเปรียบเทียบ EGA และ VGA |
 | `CHANGES.md` | สรุปการปรับปรุง |
 
@@ -167,3 +174,5 @@ python tests/run_all.py
 | OR วรรณยุกต์ที่ยกขึ้น 3 แถว | 20 คำสั่ง | 14 คำสั่ง |
 
 ตัวเลขมาจาก trace รูทีนใน COM รวมการคืน register แต่ไม่ใช่ผลวัดเวลา ความเร็วจริงขึ้นกับ CPU และบัสของเครื่อง รุ่นนี้ยังไม่ได้เพิ่มการวาดข้อความเป็นชุดหรือการตรวจจอด้วย CMPSD
+
+ผลวัดด้วย DOSBox-X บน CPU จำลอง 386 และค่า cycles เท่ากัน: รุ่น 386 ใช้เวลาผสมฟอนต์ลดลง 23.1% วาดข้อความไทยลดลง 9.2% และวาดอังกฤษลดลง 2.5% ดู [วิธีทดสอบและผลละเอียด](docs/BENCHMARK.md) ตัวเลขนี้เป็นผลในตัวจำลอง ยังไม่ได้วัดบนเครื่องจริง
