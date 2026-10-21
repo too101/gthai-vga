@@ -46,27 +46,27 @@ The revised fonts combine and adapt glyphs from **AxTHAI**, **ThaiPro**, and **A
 
 ## เปรียบเทียบภาพ EGA และ VGA
 
-ภาพแต่ละคู่แสดงในขนาด **640×480 เท่ากัน** เพื่อเปรียบเทียบรายละเอียดตัวอักษรและสระ–วรรณยุกต์บนพื้นที่แสดงผลเดียวกัน ภาพ EGA ต้นฉบับมีขนาด 640×350 จึงยืดเฉพาะความสูงตอนแสดงใน README โดยเก็บไฟล์ภาพต้นฉบับไว้ครบ คลิกภาพเพื่อเปิดต้นฉบับได้
+ภาพแต่ละคู่แสดงในขนาด **640×480 เท่ากัน** เพื่อเปรียบเทียบรายละเอียดตัวอักษรและสระ–วรรณยุกต์บนพื้นที่แสดงผลเดียวกัน ภาพ EGA ต้นฉบับมีขนาด 640×350 จึงจัดภาพเปรียบเทียบให้มีสัดส่วน 4:3 เช่นเดียวกับ VGA โดยเก็บไฟล์ภาพต้นฉบับไว้ครบ คลิกภาพเพื่อเปิดต้นฉบับได้
 
 ### Norton Commander
 
 **EGA — 640×350, ฟอนต์ 8×14 จุด**
 
-<a href="docs/images/norton-commander-ega.png"><img src="docs/images/norton-commander-ega.png" alt="Norton Commander ในโหมด EGA 640x350 ฟอนต์ 8x14 แสดงในขนาด 640x480 เพื่อเปรียบเทียบ" width="640" height="480"></a>
+<a href="docs/images/norton-commander-ega.png"><img src="docs/images/norton-commander-ega-640x480.svg" alt="Norton Commander ในโหมด EGA 640x350 ฟอนต์ 8x14 แสดงในขนาด 640x480 เพื่อเปรียบเทียบ" width="640"></a>
 
 **VGA — 640×480, ฟอนต์ 8×19 จุด** (ภาพจาก GThai 3.28)
 
-<a href="docs/images/norton-commander-vga.png"><img src="docs/images/norton-commander-vga.png" alt="Norton Commander ในโหมด VGA 640x480 ฟอนต์ 8x19" width="640" height="480"></a>
+<a href="docs/images/norton-commander-vga.png"><img src="docs/images/norton-commander-vga.png" alt="Norton Commander ในโหมด VGA 640x480 ฟอนต์ 8x19" width="640"></a>
 
 ### หน้าตั้งค่า
 
 **EGA — GThai 3.12, ฟอนต์ 8×14 จุด**
 
-<a href="docs/images/settings-ega.png"><img src="docs/images/settings-ega.png" alt="หน้าตั้งค่า GThai 3.12 ในโหมด EGA แสดงในขนาด 640x480 เพื่อเปรียบเทียบ" width="640" height="480"></a>
+<a href="docs/images/settings-ega.png"><img src="docs/images/settings-ega-640x480.svg" alt="หน้าตั้งค่า GThai 3.12 ในโหมด EGA แสดงในขนาด 640x480 เพื่อเปรียบเทียบ" width="640"></a>
 
 **VGA — ฟอนต์ 8×19 จุด** (ภาพจาก GThai 3.22)
 
-<a href="docs/images/settings-vga.png"><img src="docs/images/settings-vga.png" alt="หน้าตั้งค่า GThai ในโหมด VGA 640x480 ฟอนต์ 8x19" width="640" height="480"></a>
+<a href="docs/images/settings-vga.png"><img src="docs/images/settings-vga.png" alt="หน้าตั้งค่า GThai ในโหมด VGA 640x480 ฟอนต์ 8x19" width="640"></a>
 
 ## ใช้งานบน DOS
 
