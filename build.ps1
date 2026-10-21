@@ -14,12 +14,21 @@ try {
         }
     }
     New-Item -ItemType Directory -Force work,output | Out-Null
-    & $Assembler '-bin' '-Fowork/GTHAI.COM' '-Flwork/GTHAI.lst' 'GTHAI.ASM'
-    if ($LASTEXITCODE -ne 0) { throw "Assembler failed ($LASTEXITCODE); output was not replaced." }
-    $binary = Get-Item -LiteralPath 'work/GTHAI.COM'
-    if ($binary.Length -lt 256 -or $binary.Length -gt 65280) { throw 'Invalid DOS COM file size.' }
-    Copy-Item -LiteralPath 'work/GTHAI.COM' -Destination 'output/GTHAI.COM' -Force
-    Write-Output "Built output\GTHAI.COM ($($binary.Length) bytes)"
+    # Stage both builds first; leave release files intact if either build fails.
+    foreach ($target in 'GTHAI','GTHAI386') {
+        $arguments = @('-bin', "-Fowork/$target.COM", "-Flwork/$target.lst")
+        if ($target -eq 'GTHAI386') { $arguments += '-DCPU_386=1' }
+        $arguments += 'GTHAI.ASM'
+        & $Assembler @arguments
+        if ($LASTEXITCODE -ne 0) { throw "Assembler failed for $target ($LASTEXITCODE); outputs were not replaced." }
+        $binary = Get-Item -LiteralPath "work/$target.COM"
+        if ($binary.Length -lt 256 -or $binary.Length -gt 65280) { throw "Invalid DOS COM size for $target." }
+    }
+    foreach ($target in 'GTHAI','GTHAI386') {
+        Copy-Item -LiteralPath "work/$target.COM" -Destination "output/$target.COM" -Force
+        $binary = Get-Item -LiteralPath "output/$target.COM"
+        Write-Output "Built output/$target.COM ($($binary.Length) bytes)"
+    }
 } finally {
     Pop-Location
 }

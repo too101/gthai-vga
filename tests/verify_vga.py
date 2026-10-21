@@ -1,11 +1,13 @@
 """Execute the COM's actual 16-bit routines against a VGA planar memory model."""
-import sys, re, random
+import sys, re, random, os
 from pathlib import Path
 from unicorn import *
 from unicorn.x86_const import *
 
 root = Path(__file__).resolve().parent.parent
-listing = (root/'work/GTHAI.lst').read_text(errors='replace')
+build_artifact = os.environ.get('GTHAI_TARGET', 'GTHAI')
+if build_artifact not in ('GTHAI', 'GTHAI386'): raise ValueError('Unknown GTHAI_TARGET')
+listing = (root/'work'/f'{build_artifact}.lst').read_text(errors='replace')
 symbols = {}
 for line in listing.splitlines():
     proc = re.match(r'^([0-9A-F]{8})\s+(\w+)\s+PROC\b', line)
@@ -19,7 +21,7 @@ class Machine:
     def __init__(self):
         self.u = u = Uc(UC_ARCH_X86, UC_MODE_16)
         u.mem_map(0, 0x100000)
-        u.mem_write(0x10100, (root/'work/GTHAI.COM').read_bytes())
+        u.mem_write(0x10100, (root/'work'/f'{build_artifact}.COM').read_bytes())
         self.planes = [bytearray(65536) for _ in range(4)]
         self.gc = [0]*9
         self.gc[8] = 255

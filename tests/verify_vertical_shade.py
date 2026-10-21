@@ -1,7 +1,7 @@
 from pathlib import Path
 exec(compile((Path(__file__).parent/'verify_vga.py').read_text().split('\nm=Machine()')[0], 'verify_vga.py', 'exec'))
 u=Uc(UC_ARCH_X86,UC_MODE_16); u.mem_map(0,0x100000)
-u.mem_write(0x10100,(root/'work/GTHAI.COM').read_bytes())
+u.mem_write(0x10100,(root/'work'/f'{build_artifact}.COM').read_bytes())
 accesses=[]
 def memory(u,access,addr,size,value,data):
     accesses.append((addr,size))

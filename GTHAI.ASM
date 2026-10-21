@@ -9,7 +9,7 @@
         .list
 
 ;============================================================
-Code_Seg SEGMENT PUBLIC
+Code_Seg SEGMENT USE16 PUBLIC
          ASSUME ES:Code_Seg,CS:Code_Seg,SS:Code_Seg,DS:Code_Seg
 ;============================================================
 
@@ -1049,7 +1049,7 @@ MSG_HELPING_LEN = $-PANEL_MSG_HELPING
             DB END_OF_STRING
 
 ;----------------------------------------------------------------------
-MSG_VERSION_X = 199
+MSG_VERSION_X = (PANEL_WIDTH-(P_MSG_VERSION_LEN*8+2))/2
 MSG_VERSION_Y = 284
 MSG_VERSION_SHADOW = BLACK
 MSG_VERSION_EDGE = BRIGHT_WHITE
@@ -3295,11 +3295,23 @@ VIDINT10 ENDP
 ; Read exactly 19 bytes; the composition buffer alone keeps a zero guard.
 COPY_GLYPH19 PROC NEAR
 GLYPH_COPY_ROW = 0
+IFDEF CPU_386
+         PUSH EAX               ;Interrupt clients may use the high half of EAX
+         REPT CELL_HEIGHT/4
+         MOV EAX,DWORD PTR CS:[BX+GLYPH_COPY_ROW]
+         MOV DWORD PTR CS:[BP+GLYPH_COPY_ROW],EAX
+GLYPH_COPY_ROW = GLYPH_COPY_ROW+4
+         ENDM
+         POP EAX
+         MOV AX,WORD PTR CS:[BX+16]
+         MOV WORD PTR CS:[BP+16],AX
+ELSE
          REPT CELL_HEIGHT/2
-         MOV   AX,WORD PTR CS:[BX+GLYPH_COPY_ROW]
-         MOV   WORD PTR CS:[BP+GLYPH_COPY_ROW],AX
+         MOV AX,WORD PTR CS:[BX+GLYPH_COPY_ROW]
+         MOV WORD PTR CS:[BP+GLYPH_COPY_ROW],AX
 GLYPH_COPY_ROW = GLYPH_COPY_ROW+2
          ENDM
+ENDIF
          MOV   AL,CS:[BX+CELL_HEIGHT-1]
          MOV   CS:[BP+CELL_HEIGHT-1],AL
          MOV   BYTE PTR CS:[BP+CELL_HEIGHT],0
@@ -3311,11 +3323,21 @@ COPY_GLYPH19 ENDP
 ; No read may cross into the following glyph. Raised bottom rows stay intact.
 OR_GLYPH_ROWS PROC NEAR
 GLYPH_OR_ROW = 0
+IFDEF CPU_386
+         PUSH EAX
+         REPT (CELL_HEIGHT-TONE_RAISE)/4
+         MOV EAX,DWORD PTR CS:[BX+GLYPH_OR_ROW]
+         OR DWORD PTR CS:[BP+GLYPH_OR_ROW],EAX
+GLYPH_OR_ROW = GLYPH_OR_ROW+4
+         ENDM
+         POP EAX
+ELSE
          REPT (CELL_HEIGHT-TONE_RAISE)/2
-         MOV   AX,WORD PTR CS:[BX+GLYPH_OR_ROW]
-         OR    WORD PTR CS:[BP+GLYPH_OR_ROW],AX
+         MOV AX,WORD PTR CS:[BX+GLYPH_OR_ROW]
+         OR WORD PTR CS:[BP+GLYPH_OR_ROW],AX
 GLYPH_OR_ROW = GLYPH_OR_ROW+2
          ENDM
+ENDIF
          CMP   CL,CELL_HEIGHT-TONE_RAISE
          JE    OR_GLYPH_DONE
          MOV   AX,WORD PTR CS:[BX+16]
@@ -5311,10 +5333,14 @@ VGA_CURSOR_HIDDEN:
 
 L6289H:  
          _PUSH CX,DX,DI
+IFDEF CPU_386
+         SHR AX,4
+ELSE
          SHR   AX,1
          SHR   AX,1
          SHR   AX,1
          SHR   AX,1
+ENDIF
          MOV   DX,GRAPHICS_ADDRESS_REG
          XOR   AL,AL
          OUT   DX,AX
@@ -5339,10 +5365,14 @@ L62B3H:
          MOV   BX,WORD PTR CS:[FONT_OFFSETS+BX]
          ADD   SI,BX
          MOV   BX,CX
+IFDEF CPU_386
+         SHR BX,4
+ELSE
          SHR   BX,1
          SHR   BX,1
          SHR   BX,1
          SHR   BX,1
+ENDIF
          MOV   AX,BX
          AND   AH,0FH            ;Background colour
          XOR   AL,AL
@@ -5445,6 +5475,18 @@ NEW_TIMER ENDP
 ; Do initialization and go Resident
 ;======================================================================
 INIT PROC NEAR
+IFDEF CPU_386
+         CALL CHECK_CPU_386
+         JC CPU_386_READY
+         PUSH CS
+         POP DS
+         MOV DX,OFFSET CPU_386_REQUIRED_MSG
+         MOV AH,9
+         INT 21H
+         MOV AX,4C01H
+         INT 21H
+CPU_386_READY:
+ENDIF
 
          CLD                     ;Set forward direction flag.
          MOV   SI,5DH   ;Point to argv[1][0]
@@ -5458,7 +5500,7 @@ INIT PROC NEAR
          JZ    NOT_INSTALLED     ;...Ours will clear AL
          JMP   ALREADY_TSR
 
-NOT_INSTALLED:  
+NOT_INSTALLED:
          MOV   AX,1A00H          ;VGA display-combination query
          INT   10H
          CMP   AL,1AH
@@ -5692,7 +5734,12 @@ MSG34   DB    _SARA_E,_KO_KAI,_SO_RUSI,_TO_TAO,_RO_RUA,_PAI_YAN_NOI
          DB    _WO_WAEN,END_OF_STRING
 
 ;======================================================================
-TITLE_MSG       DB 'GThai 25 line driver Version '
+TITLE_MSG LABEL BYTE
+IFDEF CPU_386
+                DB 'GThai386 25 line driver Version '
+ELSE
+                DB 'GThai 25 line driver Version '
+ENDIF
                 VERSION_STRING
                 DB CR,LF,'$'
 
@@ -5700,7 +5747,11 @@ INSTALL_MSG     DB 'Customization by Gary Butler, VGA mode by too101',CR,LF
                 DB 'Press      ` to toggle Thai/English mode',CR,LF
                 DB 'Press Ctrl+` for control panel',CR,LF
                 DB 'Press  Alt+` to unload TSR',CR,LF
+IFDEF CPU_386
+                DB CR,LF,'To unload from command line, type GTHAI386 U',CR,LF
+ELSE
                 DB CR,LF,'To unload from command line, type GTHAI U',CR,LF
+ENDIF
                 DB '$'  ;DOS End of string
 
 ;======================================================================
@@ -5711,6 +5762,46 @@ CANT_REMOVE_MSG   DB CR,LF,'Cannot uninstall GThai. Interrupts hooked.',CR,LF,BE
 TSR_REMOVED_MSG   DB CR,LF,'GThai removed from memory.',CR,LF,'$'
 IT_AINT_HERE_MSG  DB CR,LF,'GThai is not installed.',CR,LF,'$'
 VGA_REQUIRED_MSG DB 'GThai requires VGA 640x480.',CR,LF,'$'
+IFDEF CPU_386
+; Real-mode FLAGS test, using only 8086 instructions before accepting a 386.
+; CF=1 for 386+, CF=0 for 8086/186/286; restore AX/CX and other FLAGS bits.
+CHECK_CPU_386:
+         PUSH AX
+         PUSH CX
+         PUSHF
+         POP CX
+         MOV AX,CX
+         AND AX,0FFFH
+         PUSH AX
+         POPF
+         PUSHF
+         POP AX
+         AND AX,0F000H
+         CMP AX,0F000H
+         JE CPU_386_TOO_OLD
+         MOV AX,CX
+         OR AX,0F000H
+         PUSH AX
+         POPF
+         PUSHF
+         POP AX
+         AND AX,0F000H
+         JZ CPU_386_TOO_OLD
+         PUSH CX
+         POPF
+         POP CX
+         POP AX
+         STC
+         RET
+CPU_386_TOO_OLD:
+         PUSH CX
+         POPF
+         POP CX
+         POP AX
+         CLC
+         RET
+CPU_386_REQUIRED_MSG DB 'GTHAI386 requires a 386 or newer CPU.',CR,LF,'$'
+ENDIF
 INIT    ENDP
 Code_Seg ENDS
          END   GTHAI   

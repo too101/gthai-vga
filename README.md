@@ -1,6 +1,6 @@
 # GThai VGA
 
-ไดรเวอร์ภาษาไทยสำหรับ DOS รุ่น **3.29 (G)** ใช้ VGA 640×480 สี 16 สี และฟอนต์ 8×19 จุด รองรับ CPU 8086 ขึ้นไป
+ไดรเวอร์ภาษาไทยสำหรับ DOS รุ่น **3.30** ใช้ VGA 640×480 สี 16 สี และฟอนต์ 8×19 จุด มีสองรุ่นจาก source เดียวกัน: รุ่น 8086 และรุ่น 386 ขึ้นไป
 
 ## ประวัติและเครดิต
 
@@ -27,7 +27,7 @@ VTHAI/GTHAI รุ่นเดิมที่นำมาเปรียบเ�
 
 ## English summary
 
-**GThai VGA** is a DOS Thai display and printer driver updated for **VGA 640×480, 16 colours, and 8×19-pixel fonts**, while retaining compatibility with 8086-class CPUs.
+**GThai VGA** is a DOS Thai display and printer driver updated for **VGA 640×480, 16 colours, and 8×19-pixel fonts**, with two executables built from the same source: **GTHAI.COM** for 8086-class CPUs and **GTHAI386.COM** for 386 or newer CPUs.
 
 The original **VTHAI** was created by **Wichai Patipaporn**. **Gary Butler** recreated its source through disassembly and developed **GTHAI**, initially adding IBM printer support. This project, maintained by **too101**, builds on GThai 3.12 and replaces its EGA 640×350 / 8×14 display path with VGA and taller, more detailed glyphs. Hercules and EGA adapters are no longer supported.
 
@@ -70,16 +70,31 @@ The revised fonts combine and adapt glyphs from **AxTHAI**, **ThaiPro**, and **A
 
 ## ใช้งานบน DOS
 
-นำ `output/GTHAI.COM` ไปไว้ในเครื่อง DOS หรือไดรฟ์ที่ mount ใน DOSBox-X แล้วเรียก:
+เลือกโปรแกรมให้ตรงกับ CPU แล้วนำไปไว้ในเครื่อง DOS หรือไดรฟ์ที่ mount ใน DOSBox-X:
+
+| โปรแกรม | CPU | ส่วนผสมฟอนต์ |
+|---|---|---|
+| `output/GTHAI.COM` | 8086 ขึ้นไป | คำสั่ง 16-bit |
+| `output/GTHAI386.COM` | 386 ขึ้นไป | ใช้ EAX ผสมครั้งละ 32-bit |
+
+ติดตั้งเพียงตัวเดียว โดยรุ่นปกติเรียก:
 
 ```dos
 GTHAI
 ```
 
+หรือสำหรับเครื่อง 386 ขึ้นไป:
+
+```dos
+GTHAI386
+```
+
+รุ่น 386 ยังคงทำงานใน DOS real mode แบบ 16-bit และตรวจ CPU ก่อนติดตั้ง การผสมฟอนต์ใช้คำสั่ง 32-bit โดยรักษาค่า register ส่วนบนของโปรแกรมเดิม ส่วนการเขียน VGA และการเลื่อนภาพด้วย latch ยังเป็นแบบไบต์ จึงไม่ใช่การเขียน VGA ครั้งละ 32-bit
+
 - ปุ่ม `` ` ``: สลับแป้นพิมพ์ไทย/อังกฤษ
 - Ctrl + backtick: เปิดหน้าตั้งค่า
 - Alt + backtick: เปิดหน้าถอดไดรเวอร์
-- `GTHAI U`: ถอดไดรเวอร์จากบรรทัดคำสั่ง เมื่อไม่มีโปรแกรมอื่น hook interrupt ต่ออยู่
+- `GTHAI U` หรือ `GTHAI386 U`: ถอดไดรเวอร์จากบรรทัดคำสั่ง เมื่อไม่มีโปรแกรมอื่น hook interrupt ต่ออยู่
 
 หากมีไดรเวอร์รุ่นเก่าค้างอยู่ ให้ถอดรุ่นเก่าหรือเริ่ม DOS ใหม่ก่อนโหลดรุ่นนี้
 
@@ -91,7 +106,9 @@ GTHAI
 .\build.ps1 -Assembler C:\tools\jwasm.exe
 ```
 
-ถ้า JWasm อยู่ใน PATH เรียก `./build.ps1` ได้เลย ผลลัพธ์อยู่ที่ `output/GTHAI.COM` และ listing สำหรับตรวจสอบอยู่ที่ `work/GTHAI.lst`
+ถ้า JWasm อยู่ใน PATH เรียก `./build.ps1` ได้เลย build ครั้งเดียวได้ `output/GTHAI.COM` และ `output/GTHAI386.COM` พร้อม listing แยกที่ `work/GTHAI.lst` และ `work/GTHAI386.lst`
+
+รุ่นปกติใช้ `.8086` ส่วนรุ่น 386 กำหนด `CPU_386=1` ให้ assembler และใช้ `.386` โดยทั้งคู่กำหนด code segment เป็น `USE16` อย่างชัดเจน การ build จะประกอบทั้งสองตัวให้ผ่านก่อนแทนที่ไฟล์ใน `output/`
 
 ฟอนต์ทั้งสองชุดเป็น bitmap ดิบ ไม่ใช่ฟอนต์ Windows:
 
@@ -108,17 +125,12 @@ GTHAI
 
 ```powershell
 python -m pip install -r requirements-dev.txt
-python tests/verify_vga.py
-python tests/verify_mode3.py
-python tests/verify_packed19.py
-python tests/verify_mode_switch.py
-python tests/verify_vertical_shade.py
-python tests/verify_colour_hint.py
+python tests/run_all.py
 ```
 
-ให้ build ก่อนทดสอบ ชุดทดสอบรันคำสั่ง 16-bit ของ COM จริงผ่าน Unicorn ร่วมกับแบบจำลองหน่วยความจำ VGA ตรวจฟอนต์ สี การผสมอักขระ cursor การเลื่อนจอ การสลับโหมด และขอบเขตการอ่านแรเงา
+ให้ build ก่อนทดสอบ ตัวรันจะทดสอบทั้งสอง executable รวมถึงการรักษา register 32-bit และการตรวจ CPU ชุดทดสอบรันคำสั่งของ COM จริงในโหมด 16-bit ผ่าน Unicorn ร่วมกับแบบจำลองหน่วยความจำ VGA ตรวจฟอนต์ สี การผสมอักขระ cursor การเลื่อนจอ การสลับโหมด และขอบเขตการอ่านแรเงา
 
-เคยตรวจการทำงานด้วย DOSBox-X รวมถึงหน้าตั้งค่า EDIT และการออกจาก VALET แต่ยังไม่มีผลวัดเวลาบนการ์ด VGA จริง
+เคยตรวจการทำงานด้วย DOSBox-X รวมถึงหน้าตั้งค่า EDIT และการออกจาก VALET รวมถึงตรวจติดตั้งรุ่นปกติบน CPU 8086, รุ่น 386 บน CPU 386 และการปฏิเสธรุ่น 386 บน CPU 286 แต่ยังไม่มีผลวัดเวลาบนการ์ด VGA จริง
 
 ## การแสดงผล
 
@@ -135,9 +147,23 @@ python tests/verify_colour_hint.py
 |---|---|
 | `GTHAI.ASM`, `GTHAI.INC` | source ไดรเวอร์ |
 | `fonts/` | ฟอนต์ที่ฝังในโปรแกรม |
-| `output/GTHAI.COM` | โปรแกรม DOS ที่ build แล้ว |
+| `output/GTHAI.COM` | โปรแกรม DOS สำหรับ 8086 ขึ้นไป |
+| `output/GTHAI386.COM` | โปรแกรม DOS สำหรับ 386 ขึ้นไป |
 | `tests/` | ชุดทดสอบ |
 | `docs/images/` | ภาพเปรียบเทียบ EGA และ VGA |
 | `CHANGES.md` | สรุปการปรับปรุง |
 
 เครดิตในโปรแกรม: `Customization by Gary Butler, VGA mode by too101`
+
+
+## ความแตกต่างด้านประสิทธิภาพของรุ่น 386
+
+รุ่น 386 ใช้ DWORD ในการคัดลอกและ OR ฟอนต์ครั้งละ 4 แถว พร้อมคำสั่งเลื่อนบิต 4 ตำแหน่งในขั้นเตรียมสี รุ่นปกติยังใช้ WORD และคำสั่ง 8086 ทั้งหมด
+
+| รูทีน | GTHAI | GTHAI386 |
+|---|---:|---:|
+| คัดลอก glyph 19 แถว | 23 คำสั่ง | 17 คำสั่ง |
+| OR glyph 19 แถว | 24 คำสั่ง | 18 คำสั่ง |
+| OR วรรณยุกต์ที่ยกขึ้น 3 แถว | 20 คำสั่ง | 14 คำสั่ง |
+
+ตัวเลขมาจาก trace รูทีนใน COM รวมการคืน register แต่ไม่ใช่ผลวัดเวลา ความเร็วจริงขึ้นกับ CPU และบัสของเครื่อง รุ่นนี้ยังไม่ได้เพิ่มการวาดข้อความเป็นชุดหรือการตรวจจอด้วย CMPSD
