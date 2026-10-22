@@ -70,3 +70,32 @@ for iteration in range(3):
     assert ref.planes==opt.planes,iteration
     assert ref.u.mem_read(0x10000+symbols['VID_SAVE'],4000)==opt.u.mem_read(0x10000+symbols['VID_SAVE'],4000)
 print('PASS: mixed Thai, ASCII, spaces, colours, visible cursor and dirty rows match unbatched rendering')
+
+# Reproduce a hotkey popup arriving between two glyphs of a timer batch.
+q=Machine(); q.word('VIDBUF',0xa000);q.word('VID_SEG',0xb800)
+q.u.mem_write(0x10000+symbols['DISPMODE'],b'\x02')
+q.u.mem_write(0x10000+symbols['VGA_BATCH_ACTIVE'],b'\x01\x01')
+q.gc[5]=3;q.gc[1]=15
+q.call('SAVE_SCREEN')
+assert q.u.mem_read(0x10000+symbols['VGA_BATCH_ACTIVE'],2)==bytes(2)
+# A button outline leaves a narrow mask, as in the reported unload dialog.
+q.gc[8]=1
+q.call('L62B3H',ds=0x1000,es=0xa000,ax=0xf041,si=symbols['FONT_2'],di=0xe000)
+font=q.u.mem_read(0x10000+symbols['FONT_2']+65*19,19)
+for y in range(19):
+    for plane in q.planes: assert plane[0xe000+y*80]==(~font[y]&255)
+assert q.gc[8]==255 and q.gc[5]==0 and q.gc[1]==0
+print('PASS: popup cancels interrupted timer batch; button glyph resets narrow frame bit mask')
+# Enter with interrupts enabled, verify VGA OUTs run atomically and IF is restored.
+for routine in ('L62B3H','L6289H','DRAW_CURSOR_VGA'):
+    q=Machine();q.word('VIDBUF',0xa000);q.word('L0538H',0x7470)
+    entry=0xee00
+    relative=(symbols[routine]-(entry+4))&65535
+    q.u.mem_write(0x10000+entry,b'\xfb\xe8'+relative.to_bytes(2,'little')+b'\xc3')
+    symbols['IRQ_TEST']=entry
+    def atomic(u,port,size,value,_):
+        if port==0x3ce: assert not u.reg_read(UC_X86_REG_EFLAGS)&0x200,routine
+    q.u.hook_add(UC_HOOK_INSN,atomic,None,1,0,UC_X86_INS_OUT)
+    q.call('IRQ_TEST',ax=0x0741,si=symbols['FONT_2'],di=0xe000)
+    assert q.u.reg_read(UC_X86_REG_EFLAGS)&0x200,routine
+print('PASS: glyph, blank and cursor VGA updates mask interrupts briefly and restore IF')

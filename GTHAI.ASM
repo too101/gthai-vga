@@ -383,6 +383,9 @@ CRIT_ERR ENDP
 ;------------------------------------------------------------
 SAVE_SCREEN PROC  NEAR
 ;------------------------------------------------------------
+; A hotkey can interrupt a timer batch between glyphs. Cancel its cached GC state.
+         CALL VGA_BATCH_FLUSH
+         MOV BYTE PTR CS:[VGA_BATCH_ACTIVE],0
          MOV   AX,BIOS_SEG                      ;POINT DS TO BIOS DATA AREA
          MOV   DS,AX
          MOV   AX,WORD PTR DS:[BIOS_CURSOR_ADDRESS]      ;Get cursor position for video page 0
@@ -5359,6 +5362,8 @@ L6251H:
          RET
 
 DRAW_CURSOR_VGA: 
+         PUSHF
+         CLI
          CALL VGA_BATCH_FLUSH
          MOV   ES,WORD PTR CS:[VIDBUF]
          CMP   DI,CS:[L0538H]   ;Hidden cursor: row 25 is outside the text area
@@ -5382,9 +5387,12 @@ VGA_CURSOR_EXIT:
          MOV   AX, 3H
          OUT   DX,AX
 VGA_CURSOR_HIDDEN:
+         POPF
          RET
 
 L6289H:  
+         PUSHF
+         CLI
          CALL VGA_BATCH_FLUSH
          _PUSH CX,DX,DI
 IFDEF CPU_386
@@ -5408,9 +5416,13 @@ ENDIF
          MOV   AX,1
          OUT   DX,AX
          _POP  DI,DX,CX
+         POPF
          RET
 
 L62B3H:
+; Do not allow a popup to change GC/latches halfway through a glyph.
+         PUSHF
+         CLI
          _PUSH CX,DX
          MOV   CX,AX             ;Keep character/attribute for foreground
          XOR   AH,AH
@@ -5476,6 +5488,7 @@ VGA_GLYPH_ROW = VGA_GLYPH_ROW+1
          OUT   DX,AX
 VGA_GLYPH_RETURN:
          _POP DX,CX
+         POPF
          RET
 L6314H:  
          MOV   DX,GRAPHICS_ADDRESS_REG
