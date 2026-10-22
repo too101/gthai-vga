@@ -3,7 +3,7 @@ Uses BIOS ticks (about 54.9 ms), so this is emulated timing, not hardware timing
 No installed driver is replaced: generated benchmark copies run in fresh emulators.
 """
 from pathlib import Path
-import argparse,subprocess,struct,time,json,statistics
+import argparse,subprocess,struct,time,json,statistics,hashlib
 
 parser=argparse.ArgumentParser()
 parser.add_argument('--assembler',required=True)
@@ -11,11 +11,15 @@ parser.add_argument('--dosbox',required=True)
 parser.add_argument('--cycles',type=int,default=10000)
 parser.add_argument('--repetitions',type=int,default=3)
 parser.add_argument('--scale',type=int,default=1,help='Multiply loop counts for finer BIOS tick resolution')
+parser.add_argument('--source',type=Path,help='Alternate source snapshot for before/after comparisons')
+parser.add_argument('--work-dir',type=Path,default=Path('work/benchmark'))
+parser.add_argument('--target',choices=('both','GTHAI','GTHAI386'),default='both')
+parser.add_argument('--profile',choices=('glyph','screen'),default='glyph')
 args=parser.parse_args()
-if args.cycles<=0 or not 1<=args.repetitions<=20 or not 1<=args.scale<=20: parser.error('Invalid cycles or repetitions')
+if args.cycles<=0 or not 1<=args.repetitions<=20 or not 1<=args.scale<=20: parser.error('Invalid cycles, repetitions, or scale')
 root=Path(__file__).resolve().parents[1]
-work=root/'work/benchmark'; work.mkdir(parents=True,exist_ok=True)
-source=(root/'GTHAI.ASM').read_text(encoding='latin1')
+work=root/args.work_dir; work.mkdir(parents=True,exist_ok=True)
+source=(args.source or root/'GTHAI.ASM').read_text(encoding='latin1')
 cases=[(name,count*args.scale) for name,count in [('copy19',500000),('compose_thai',250000),('draw_ascii',200000),('draw_thai',100000)]]
 # Same 16-bit loop/argument setup in both variants; only the driver code differs.
 body="""
@@ -62,13 +66,71 @@ loops=[
  """         MOV SI,OFFSET BENCH_THAI
          CALL DO_MSG
 """]
+if args.profile=='screen':
+    cases=[('screen_idle',5000*args.scale),('screen_redraw',500*args.scale)]
+    setup="""
+         MOV WORD PTR [VID_SEG],0B800H
+         MOV WORD PTR [CRTBASE],03D4H
+         MOV BYTE PTR [CURRENT_MODE],0
+         MOV BX,OFFSET L0506H
+         MOV AX,VGA_ORIGIN
+         MOV CX,26
+BENCH_ROWS:
+         MOV [BX],AX
+         ADD AX,CELL_HEIGHT*80
+         ADD BX,2
+         LOOP BENCH_ROWS
+         MOV [VID_OFFSET],AX
+         SUB WORD PTR [VID_OFFSET],CELL_HEIGHT*80
+         MOV DX,03D4H
+         MOV AX,070EH
+         OUT DX,AX
+         MOV AX,0D00FH
+         OUT DX,AX
+         MOV AX,0B800H
+         MOV ES,AX
+         XOR DI,DI
+         MOV AX,0741H
+         MOV CX,2000
+         REP STOSW
+         PUSH CS
+         POP ES
+         MOV DI,OFFSET VID_SAVE
+         MOV AX,0741H
+         MOV CX,2000
+         REP STOSW
+         MOV AX,0A000H
+         MOV ES,AX
+"""
+    body=body.replace('BENCH_ROUND:',setup+'\nBENCH_ROUND:')
+    call="""         PUSH DS
+         PUSH ES
+         PUSH DX
+         PUSH CS
+         POP DS
+         CALL UPDATE_SCREEN_THAI_25
+         POP DX
+         POP ES
+         POP DS
+"""
+    dirty="""         PUSH ES
+         PUSH CS
+         POP ES
+         MOV DI,OFFSET VID_SAVE
+         XOR AX,AX
+         MOV CX,2000
+         REP STOSW
+         POP ES
+"""
+    loops=[call,dirty+call]
 for index,(name,iterations) in enumerate(cases):
-    assert iterations%50000==0
+    inner=min(50000,iterations)
+    assert iterations%inner==0
     body+=f"         MOV WORD PTR [BENCH_CASE],{index}\n"
     body+="""         CALL BENCH_SYNC
          MOV [BENCH_BEGIN],AX
 """
-    body+=f"         MOV DX,{iterations//50000}\nBENCH_OUTER_{index}:\n         MOV CX,50000\nBENCH_INNER_{index}:\n         PUSH CX\n"
+    body+=f"         MOV DX,{iterations//inner}\nBENCH_OUTER_{index}:\n         MOV CX,{inner}\nBENCH_INNER_{index}:\n         PUSH CX\n"
     body+=loops[index]
     body+=f"         POP CX\n         LOOP BENCH_INNER_{index}\n         DEC DX\n         JNZ BENCH_OUTER_{index}\n"
     body+="""         CALL BENCH_CLOCK
@@ -124,7 +186,7 @@ end=variant.lower().rfind('code_seg ends')
 variant=variant[:end]+body+variant[end:]
 benchmark_source=work/'benchmark.asm'; benchmark_source.write_text(variant,encoding='latin1')
 all_results={}
-for target in ('GTHAI','GTHAI386'):
+for target in (('GTHAI','GTHAI386') if args.target=='both' else (args.target,)):
     directory=work/target; directory.mkdir(exist_ok=True)
     binary=directory/'BENCH.COM'
     command=[args.assembler,'-bin',f'-Fo{binary}',str(benchmark_source)]
@@ -156,9 +218,9 @@ for target in ('GTHAI','GTHAI386'):
         all_results[target]=records
     finally:
         if process.poll() is None: process.terminate(); process.wait(timeout=5)
-report={'environment':dict(core='normal',cpu='386',cycles=args.cycles,repetitions=args.repetitions,scale=args.scale,timer='BIOS tick',tick_seconds=65536/1193182),'cases':dict(cases),'samples':all_results}
+report={'source_sha256':hashlib.sha256(source.encode('latin1')).hexdigest(),'include_sha256':hashlib.sha256((root/'GTHAI.INC').read_bytes()).hexdigest(),'environment':dict(core='normal',cpu='386',cycles=args.cycles,repetitions=args.repetitions,scale=args.scale,profile=args.profile,timer='BIOS tick',tick_seconds=65536/1193182),'cases':dict(cases),'samples':all_results}
 (work/'results.json').write_text(json.dumps(report,indent=2),encoding='utf-8')
-for name,iterations in cases:
+for name,iterations in (cases if args.target=='both' else []):
     before=statistics.median(x['ticks'] for x in all_results['GTHAI'] if x['case']==name)
     after=statistics.median(x['ticks'] for x in all_results['GTHAI386'] if x['case']==name)
     print(f'{name}: median {before} -> {after} ticks, elapsed time change {(after/before-1)*100:+.1f}%',flush=True)

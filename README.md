@@ -1,6 +1,6 @@
 # GThai VGA
 
-ไดรเวอร์ภาษาไทยสำหรับ DOS รุ่น **3.30** ใช้ VGA 640×480 สี 16 สี และฟอนต์ 8×19 จุด มีสองรุ่นจาก source เดียวกัน: รุ่น 8086 และรุ่น 386 ขึ้นไป
+ไดรเวอร์ภาษาไทยสำหรับ DOS รุ่น **3.31** ใช้ VGA 640×480 สี 16 สี และฟอนต์ 8×19 จุด มีสองรุ่นจาก source เดียวกัน: รุ่น 8086 และรุ่น 386 ขึ้นไป
 
 ## ประวัติและเครดิต
 
@@ -37,7 +37,7 @@ The revised fonts combine and adapt glyphs from **AxTHAI**, **ThaiPro**, and **A
 
 Display options include English, Thai 8-line mode without automatic vowel/tone composition, and Thai 25-line mode with composition. The settings dialog supports the taller fonts, and the Thai cursor spans the full character height.
 
-Both executables provide the same features and fonts; load only one at a time. The 386 build remains a 16-bit DOS real-mode program, uses 32-bit instructions for glyph copying and composition, and preserves the interrupted program’s upper register bits. VGA drawing and latch scrolling remain byte-based. In a controlled DOSBox-X comparison on the same emulated 386, it reduced Thai composition time by **23.1%** and composed Thai drawing time by **9.2%**. These are emulator microbenchmarks, not real-hardware measurements; see the [benchmark report](docs/BENCHMARK.md).
+Both executables provide the same features and fonts; load only one at a time. Version 3.31 reduces repeated VGA register setup during Thai 25-line screen updates in both builds, while the 386 build also compares text using `CMPSD`. The 386 build remains a 16-bit DOS real-mode program, uses 32-bit instructions for glyph copying and composition, and preserves the interrupted program’s upper register bits. VGA drawing and latch scrolling remain byte-based. In the version 3.30 DOSBox-X comparison on the same emulated 386, it reduced Thai composition time by **23.1%** and composed Thai drawing time by **9.2%**. These are emulator microbenchmarks, not real-hardware measurements; see the [benchmark report](docs/BENCHMARK.md).
 
 ## ความสามารถ
 
@@ -141,6 +141,8 @@ python tests/run_all.py
 ## การแสดงผล
 
 - ใช้ VGA write mode 3 และคลี่คำสั่งวาดทั้ง 19 แถว
+- ทั้งสองรุ่นเก็บสถานะ VGA ระหว่างวาดอักษรต่อเนื่องในโหมดไทย 25 บรรทัด ลด `OUT` จาก 7 เหลือ 4 ครั้งหลังตัวแรก และคืนสถานะก่อนวาดช่องว่าง/cursor และเมื่อจบการอัปเดต
+- รุ่น 386 ใช้ `REPE CMPSD` ตรวจข้อความครั้งละสองช่อง และตรวจซ้ำระดับ WORD เพื่อหาช่องแรกที่ต่างอย่างแม่นยำ
 - วาดใหม่เฉพาะข้อมูลข้อความที่เปลี่ยน
 - ย้ายพื้นที่ภาพเริ่มที่ offset E000h และวนผ่านขอบ 64 KB เพื่อเว้นพื้นที่ B800 สำหรับข้อความและสำรองจอ
 - ใช้การคัดลอกแบบไบต์ในการเลื่อนภาพด้วย VGA latch
@@ -175,6 +177,8 @@ python tests/run_all.py
 | OR glyph 19 แถว | 24 คำสั่ง | 18 คำสั่ง |
 | OR วรรณยุกต์ที่ยกขึ้น 3 แถว | 20 คำสั่ง | 14 คำสั่ง |
 
-ตัวเลขมาจาก trace รูทีนใน COM รวมการคืน register แต่ไม่ใช่ผลวัดเวลา ความเร็วจริงขึ้นกับ CPU และบัสของเครื่อง รุ่นนี้ยังไม่ได้เพิ่มการวาดข้อความเป็นชุดหรือการตรวจจอด้วย CMPSD
+ตัวเลขมาจาก trace รูทีนใน COM รวมการคืน register แต่ไม่ใช่ผลวัดเวลา ความเร็วจริงขึ้นกับ CPU และบัสของเครื่อง รุ่น 3.31 เพิ่มการใช้สถานะ VGA ร่วมระหว่างวาดในทั้งสอง executable และใช้ CMPSD ตรวจจอเฉพาะรุ่น 386
 
-ผลวัดด้วย DOSBox-X บน CPU จำลอง 386 และค่า cycles เท่ากัน: รุ่น 386 ใช้เวลาผสมฟอนต์ลดลง 23.1% วาดข้อความไทยลดลง 9.2% และวาดอังกฤษลดลง 2.5% ดู [วิธีทดสอบและผลละเอียด](docs/BENCHMARK.md) ตัวเลขนี้เป็นผลในตัวจำลอง ยังไม่ได้วัดบนเครื่องจริง
+ผลวัดรุ่น 3.30 ด้วย DOSBox-X บน CPU จำลอง 386 และค่า cycles เท่ากัน: รุ่น 386 ใช้เวลาผสมฟอนต์ลดลง 23.1% วาดข้อความไทยลดลง 9.2% และวาดอังกฤษลดลง 2.5% ดู [วิธีทดสอบและผลละเอียด](docs/BENCHMARK.md) ตัวเลขนี้เป็นผลในตัวจำลอง ยังไม่ได้วัดบนเครื่องจริง
+
+ผลเทียบก่อน–หลังรุ่น 3.31 ใน DOSBox-X: วาดใหม่ทั้งจอใช้เวลาลดลง 6.1% สำหรับ GTHAI และ 6.3% สำหรับ GTHAI386 ส่วนตรวจจอเดิมในรุ่น 386 ลดลง 48.9% ดูเงื่อนไขใน [รายงานทดสอบ](docs/BENCHMARK.md)

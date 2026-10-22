@@ -1,0 +1,149 @@
+{
+  "baseline_source_commit": "731512f",
+  "updated_version": "3.31",
+  "baseline_8086": {
+    "environment": {
+      "core": "normal",
+      "cpu": "386",
+      "cycles": 10000,
+      "repetitions": 2,
+      "scale": 1,
+      "profile": "screen",
+      "timer": "BIOS tick",
+      "tick_seconds": 0.05492540115422458
+    },
+    "cases": {
+      "screen_idle": 5000,
+      "screen_redraw": 500
+    },
+    "samples": {
+      "GTHAI": [
+        {
+          "case": "screen_idle",
+          "repeat": 0,
+          "ticks": 24
+        },
+        {
+          "case": "screen_redraw",
+          "repeat": 0,
+          "ticks": 244
+        },
+        {
+          "case": "screen_idle",
+          "repeat": 1,
+          "ticks": 23
+        },
+        {
+          "case": "screen_redraw",
+          "repeat": 1,
+          "ticks": 244
+        }
+      ]
+    }
+  },
+  "baseline_386": {
+    "environment": {
+      "core": "normal",
+      "cpu": "386",
+      "cycles": 10000,
+      "repetitions": 2,
+      "scale": 1,
+      "profile": "screen",
+      "timer": "BIOS tick",
+      "tick_seconds": 0.05492540115422458
+    },
+    "cases": {
+      "screen_idle": 5000,
+      "screen_redraw": 500
+    },
+    "samples": {
+      "GTHAI386": [
+        {
+          "case": "screen_idle",
+          "repeat": 0,
+          "ticks": 24
+        },
+        {
+          "case": "screen_redraw",
+          "repeat": 0,
+          "ticks": 239
+        },
+        {
+          "case": "screen_idle",
+          "repeat": 1,
+          "ticks": 23
+        },
+        {
+          "case": "screen_redraw",
+          "repeat": 1,
+          "ticks": 239
+        }
+      ]
+    }
+  },
+  "updated": {
+    "environment": {
+      "core": "normal",
+      "cpu": "386",
+      "cycles": 10000,
+      "repetitions": 2,
+      "scale": 1,
+      "profile": "screen",
+      "timer": "BIOS tick",
+      "tick_seconds": 0.05492540115422458
+    },
+    "cases": {
+      "screen_idle": 5000,
+      "screen_redraw": 500
+    },
+    "samples": {
+      "GTHAI": [
+        {
+          "case": "screen_idle",
+          "repeat": 0,
+          "ticks": 24
+        },
+        {
+          "case": "screen_redraw",
+          "repeat": 0,
+          "ticks": 229
+        },
+        {
+          "case": "screen_idle",
+          "repeat": 1,
+          "ticks": 23
+        },
+        {
+          "case": "screen_redraw",
+          "repeat": 1,
+          "ticks": 229
+        }
+      ],
+      "GTHAI386": [
+        {
+          "case": "screen_idle",
+          "repeat": 0,
+          "ticks": 12
+        },
+        {
+          "case": "screen_redraw",
+          "repeat": 0,
+          "ticks": 224
+        },
+        {
+          "case": "screen_idle",
+          "repeat": 1,
+          "ticks": 12
+        },
+        {
+          "case": "screen_redraw",
+          "repeat": 1,
+          "ticks": 224
+        }
+      ]
+    }
+  },
+  "note": "Before and after use the same emulated 386. Baseline source uses current include macros; only version text differs from the original include.",
+  "updated_source_sha256": "09689898b2047200d6b67c7eb0abb8e878fa67716abdb9715c63c0da7e27c43b",
+  "updated_include_sha256": "6d1173738afc236b1750c4bb8bdf22c27d07bc199ea3ad5ca10aeaf8ed898a2f"
+}

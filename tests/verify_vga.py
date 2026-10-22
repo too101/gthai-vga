@@ -50,7 +50,7 @@ class Machine:
         assert port == 0x3d5
         return self.crt[self.crt_index]
     def read(self,u,access,addr,size,value,_):
-        assert size in (1,2)
+        assert size in (1,2) or (size == 4 and addr >= 0xb8000)
         values=[]
         for n in range(size):
             offset=(addr+n-0xa0000)&65535
@@ -325,7 +325,3 @@ assert m.u.reg_read(UC_X86_REG_CX)==19 and m.u.reg_read(UC_X86_REG_DX)==24
 assert m.u.reg_read(UC_X86_REG_ES)==0xf000 and m.u.reg_read(UC_X86_REG_BP)==0x1234
 print('PASS: EDIT font-info query reaches BIOS and returns 19-row glyphs / 25 text rows')
 print('All VGA routine checks passed. This models CPU/VGA operations, not a complete DOS BIOS.')
-
-
-
-

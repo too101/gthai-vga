@@ -3366,7 +3366,49 @@ TRANSLATE_FONT_CHAR ENDP
 ; Update screen display and chain to old timer interrupt
 ; Thai 25 line mode
 ;----------------------------------------------------------------------
+IFDEF CPU_386
+; CX must be a nonzero even word count; only ZF is consumed by callers.
+; On mismatch, refine the DWORD to the exact first differing text cell.
+COMPARE_TEXT386 PROC NEAR
+         SHR CX,1
+         REPE CMPSD
+         JZ CT386_EQUAL
+         SHL CX,1
+         ADD CX,2
+         SUB SI,4
+         SUB DI,4
+         REPE CMPSW
+         RET
+CT386_EQUAL:
+         SHL CX,1
+         CMP CX,CX
+         RET
+COMPARE_TEXT386 ENDP
+ENDIF
+
+VGA_BATCH_ACTIVE DB 0
+VGA_BATCH_VALID DB 0
+VGA_BATCH_FLUSH PROC NEAR
+         PUSHF
+         CMP BYTE PTR CS:[VGA_BATCH_VALID],0
+         JE VBF_DONE
+         PUSH AX
+         PUSH DX
+         MOV DX,GRAPHICS_ADDRESS_REG
+         MOV AX,5
+         OUT DX,AX
+         MOV AX,1
+         OUT DX,AX
+         MOV BYTE PTR CS:[VGA_BATCH_VALID],0
+         POP DX
+         POP AX
+VBF_DONE:
+         POPF
+         RET
+VGA_BATCH_FLUSH ENDP
+
 UPDATE_SCREEN_THAI_25 PROC NEAR
+         MOV BYTE PTR CS:[VGA_BATCH_ACTIVE],1
          CLD                     ;Set forward direction flag.
 L4CA3H:  
          MOV   DS,CS:[VID_SEG]
@@ -3377,7 +3419,11 @@ L4CA3H:
          MOV   DI,OFFSET VID_SAVE
          XOR   SI,SI
          MOV   CX,SCREEN_SIZE
-         REPZ CMPSW                       ;Has video memory changed?
+IFDEF CPU_386
+         CALL COMPARE_TEXT386
+ELSE
+         REPZ CMPSW
+ENDIF                            ;Has video memory changed?
          JNZ   VMEM_CHANGED_25            ;Yes, update video
 
          MOV   BP,WORD PTR CS:[VID_OFFSET]
@@ -3587,7 +3633,11 @@ L4ED2H:
          JZ    L4EE5H
          MOV   CL,50H
          MOV   AX,SI
-         REPZ CMPSW              ;Compare strings.
+IFDEF CPU_386
+         CALL COMPARE_TEXT386
+ELSE
+         REPZ CMPSW
+ENDIF
          JZ    L4ED2H
          MOV   SI,AX
          JMP   L4CFAH
@@ -3597,6 +3647,8 @@ L4EE5H:
          CALL  DRAW_CURSOR_VGA
 
 UPD_25_EXIT:  
+         CALL VGA_BATCH_FLUSH
+         MOV BYTE PTR CS:[VGA_BATCH_ACTIVE],0
         RET
 UPDATE_SCREEN_THAI_25 ENDP
 
@@ -5307,6 +5359,7 @@ L6251H:
          RET
 
 DRAW_CURSOR_VGA: 
+         CALL VGA_BATCH_FLUSH
          MOV   ES,WORD PTR CS:[VIDBUF]
          CMP   DI,CS:[L0538H]   ;Hidden cursor: row 25 is outside the text area
          JE    VGA_CURSOR_HIDDEN
@@ -5332,6 +5385,7 @@ VGA_CURSOR_HIDDEN:
          RET
 
 L6289H:  
+         CALL VGA_BATCH_FLUSH
          _PUSH CX,DX,DI
 IFDEF CPU_386
          SHR AX,4
@@ -5365,6 +5419,14 @@ L62B3H:
          MOV   BX,WORD PTR CS:[FONT_OFFSETS+BX]
          ADD   SI,BX
          MOV   BX,CX
+         CMP BYTE PTR CS:[VGA_BATCH_VALID],0
+         JE VGA_GLYPH_SETUP
+; A B800 text read changes latches: reseed every glyph, retain only GC state.
+; AX is replaced from BX below; DX is already saved by the glyph prologue.
+         MOV DX,GRAPHICS_ADDRESS_REG
+         MOV AX,5
+         OUT DX,AX
+VGA_GLYPH_SETUP:
 IFDEF CPU_386
          SHR BX,4
 ELSE
@@ -5378,10 +5440,13 @@ ENDIF
          XOR   AL,AL
          MOV   DX,GRAPHICS_ADDRESS_REG
          OUT   DX,AX
+         CMP BYTE PTR CS:[VGA_BATCH_VALID],0
+         JNE VGA_GLYPH_SEED
          MOV   AX,0F01H
          OUT   DX,AX
          MOV   AX,0FF08H         ;Dialog lines/fills can leave a partial bit mask
          OUT   DX,AX
+VGA_GLYPH_SEED:
 ; Seed all four latches with a solid background using the first scanline.
 ; VGA writes do not reload latches: reuse this background for all 19 rows.
          MOV   BYTE PTR ES:[DI],0
@@ -5392,6 +5457,10 @@ ENDIF
          OUT   DX,AX
          MOV   AX,0305H          ;Write mode 3: host byte supplies pixel mask
          OUT   DX,AX
+         CMP BYTE PTR CS:[VGA_BATCH_ACTIVE],0
+         JE VGA_GLYPH_PIXELS
+         MOV BYTE PTR CS:[VGA_BATCH_VALID],1
+VGA_GLYPH_PIXELS:
 VGA_GLYPH_ROW = 0
          REPT CELL_HEIGHT
          MOV   AL,CS:[SI+VGA_GLYPH_ROW]
@@ -5399,10 +5468,13 @@ VGA_GLYPH_ROW = 0
 VGA_GLYPH_ROW = VGA_GLYPH_ROW+1
          ENDM
          ADD   SI,CELL_HEIGHT-1
-         MOV   AX,5              ;Restore write mode 0 for every caller
+         CMP BYTE PTR CS:[VGA_BATCH_ACTIVE],0
+         JNE VGA_GLYPH_RETURN
+         MOV   AX,5              ;Standalone callers restore immediately; batch flushes at exit
          OUT   DX,AX
          MOV   AX,1              ;Disable set/reset; bit mask remains FFh
          OUT   DX,AX
+VGA_GLYPH_RETURN:
          _POP DX,CX
          RET
 L6314H:  

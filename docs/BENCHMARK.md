@@ -39,3 +39,32 @@ python tools/benchmark_dosbox.py --assembler C:\tools\jwasm.exe --dosbox C:\DOSB
 ## English summary
 
 On the same emulated 386 in DOSBox-X, GTHAI386 reduced elapsed time by 20.3% for glyph copying, 23.1% for Thai glyph composition, 2.5% for ASCII drawing, and 9.2% for composed Thai drawing. Both repetitions returned identical tick counts. These tests call individual routines and repeatedly draw to one screen cell; they do not measure whole-application performance or physical VGA hardware.
+
+## รุ่น 3.31 — ใช้สถานะ VGA ร่วมและตรวจจอด้วย CMPSD
+
+ทดสอบ 22 ตุลาคม 2026 ใน DOSBox-X ด้วย CPU จำลอง 386, core normal, fixed 10000 cycles เหมือนกันทุกตัว เทียบ source ก่อนแก้จาก commit `731512f` กับรุ่น 3.31 ทดสอบ 2 รอบ ผลดิบอยู่ที่ [dosbox-screen-3.31.json](benchmarks/dosbox-screen-3.31.json)
+
+| โปรแกรม / งาน | จำนวนครั้งต่อรอบ | ก่อนแก้ (tick) | หลังแก้ (tick) | เวลาลดลง |
+|---|---:|---:|---:|---:|
+| GTHAI ตรวจจอเดิม | 5,000 | 24, 23 | 24, 23 | ไม่เปลี่ยน |
+| GTHAI วาดใหม่ทั้งจอ | 500 | 244, 244 | 229, 229 | 6.1% |
+| GTHAI386 ตรวจจอเดิม | 5,000 | 24, 23 | 12, 12 | 48.9% จากค่ามัธยฐาน |
+| GTHAI386 วาดใหม่ทั้งจอ | 500 | 239, 239 | 224, 224 | 6.3% |
+
+กรณีนี้เรียก `UPDATE_SCREEN_THAI_25` จริง เตรียมจอ 80×25 เป็นอักษร A สี 07h และซ่อน cursor กรณีตรวจจอเดิมใช้ข้อมูลตรงกับ buffer สำรอง กรณีวาดใหม่ล้าง buffer สำรองทั้ง 4,000 ไบต์ก่อนทุกครั้ง ซึ่งรวมเวลาล้างนี้ไว้ด้วย ปิดการตรวจกรอบสำหรับงานวัดนี้ (`CURRENT_MODE=0`) ผลจึงไม่ใช่การวัดโปรแกรม DOS ทั้งตัวหรือข้อความไทยที่ผสมหลายชั้น
+
+ทั้งสองรุ่นลด OUT จาก 7 ครั้งต่อตัว เป็น 5 ครั้งสำหรับตัวแรก, 4 ครั้งสำหรับตัวต่อไป และคืนสถานะ 2 ครั้งเมื่อจบชุด จึงลดเวลาในงานวาดได้แม้ใช้คำสั่ง 8086 ส่วน CMPSD ช่วยงานตรวจจอของรุ่น 386 โดยเฉพาะ
+
+ทุกตัวอักษรยังโหลด latch สีพื้นใหม่ เพราะการอ่าน B800 ระหว่างประมวลผลข้อความเปลี่ยน latch ได้ เมื่อวาดช่องว่าง/cursor หรือออกจากการอัปเดตจะคืนสถานะ VGA ส่วนการวาดเดี่ยวและ dialog ใช้เส้นทางที่คืนสถานะทุกครั้ง การปรับนี้ใช้กับโหมดไทย 25 บรรทัด
+
+### เรียกทดสอบซ้ำ
+
+```powershell
+python tools/benchmark_dosbox.py --assembler C:\tools\jwasm.exe --dosbox C:\DOSBox-X\dosbox-x.exe --profile screen --repetitions 2 --work-dir work/benchmark-screen
+```
+
+ใช้ `--target GTHAI` หรือ `--target GTHAI386` เพื่อเลือกตัวเดียว และ `--source` เพื่อระบุไฟล์ ASM ก่อนแก้ สคริปต์ยังอ่าน GTHAI.INC และฟอนต์จากโครงการปัจจุบัน จึงต้องใช้ไฟล์ประกอบที่ตรงกับรุ่นที่ต้องการวัด สำหรับผลชุดนี้ include เปลี่ยนเฉพาะหมายเลขรุ่นจาก baseline โดยคำสั่งช่วยและฟอนต์ยังเหมือนเดิม
+
+### English summary for 3.31
+
+Both builds now share VGA register state during consecutive glyph rendering in Thai 25-line screen updates. On the same emulated 386, full-screen ASCII redraw time fell by 6.1% for GTHAI and 6.3% for GTHAI386 versus their respective previous builds. The 386 build also uses CMPSD and reduced unchanged-screen checking time by 48.9% using median BIOS ticks. These results exclude frame detection and are not physical-hardware measurements.
