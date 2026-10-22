@@ -6,9 +6,9 @@
 
 **VTHAI เป็นผลงานของคุณวิชัย ปฏิภาภรณ์ (Wichai Patipaporn)**
 
-Gary Butler นำโปรแกรม VTHAI มา disassemble และพัฒนาต่อเป็น **GTHAI** โดยเริ่มจากการเพิ่มการรองรับเครื่องพิมพ์ IBM ส่วนโครงการนี้พัฒนาต่อจาก GThai 3.12 โดย too101 เพื่อปรับการแสดงผล VGA ฟอนต์ และแก้ไขข้อบกพร่องเพิ่มเติม
+Gary Butler นำโปรแกรม VTHAI มา disassemble แก้ไขให้รองรับเครื่องพิมพ์ IBM และพัฒนาต่อเป็น **GTHAI** ส่วนโครงการนี้พัฒนาต่อจาก GThai 3.12 เพื่อปรับการแสดงผลเป็น VGA Graphics Mode และแก้ไขข้อบกพร่องเพิ่มเติม
 
-VTHAI/GTHAI รุ่นเดิมที่นำมาเปรียบเทียบใช้โหมด **EGA 640×350** กับฟอนต์ **8×14 จุด** โครงการนี้เปลี่ยนเป็น **VGA 640×480** กับฟอนต์ **8×19 จุด** เพื่อเพิ่มรายละเอียดของตัวอักษรและพื้นที่วางสระ–วรรณยุกต์ จึงไม่รองรับ Hercules และ EGA
+VTHAI/GTHAI รุ่นเดิมใช้ **EGA Graphics Mode 640×350** กับฟอนต์ **8×14 จุด** บนการ์ด EGA และ VGA และมีส่วนรองรับ Hercules แยกต่างหาก โครงการนี้เปลี่ยนการแสดงผลเป็น **VGA Graphics Mode 640×480** กับฟอนต์ **8×19 จุด** เพื่อเพิ่มรายละเอียดของตัวอักษร และตัดส่วนรองรับ Hercules และ EGA ออก
 
 ### ที่มาของฟอนต์
 
@@ -16,59 +16,61 @@ VTHAI/GTHAI รุ่นเดิมที่นำมาเปรียบเ�
 
 - ระบบภาษาไทย **AxTHAI**
 - ระบบภาษาไทย **ThaiPro**
-- **AST BIOS Font**
+- **AST ROM BIOS Font**
 
 ### การแก้ไขเพิ่มเติมจาก GTHAI เดิม
 
-- **Microsoft EDIT:** แก้การคืนข้อมูลฟอนต์และจำนวนแถวให้แสดงหน้าจอได้ครบ
-- **Norton Commander:** แก้การเก็บและคืนข้อมูลจอ รวมถึงการสลับโหมดอังกฤษ/ไทยที่อาจทำให้เกิดขยะบนจอ
-- **อักษรแรเงา:** เพิ่มการตรวจ `░ ▒ ▓` แนวตั้ง และตรวจขอบแถว/จอเพื่อไม่ให้อ่านข้ามพื้นที่ข้อความ
+- แก้ไขการทำงานร่วมกับ **Microsoft EDIT** ให้แสดงหน้าจอได้ครบ
+- แก้ไขการทำงานร่วมกับ **Norton Commander** ให้แสดงผลได้ถูกต้อง
+- เพิ่มการตรวจ `░ ▒ ▓` แนวตั้ง และตรวจขอบแถว/จอเพื่อไม่ให้อ่านข้ามพื้นที่ข้อความ
 - ปรับการตรวจเส้นกรอบโดยใช้สีของช่องข้างเคียงร่วมกับบริบทตัวอักษร
 
 ## English summary
 
 **GThai VGA** is a DOS Thai display and printer driver updated for **VGA 640×480, 16 colours, and 8×19-pixel fonts**, with two executables built from the same source: **GTHAI.COM** for 8086-class CPUs and **GTHAI386.COM** for 386 or newer CPUs.
 
-The original **VTHAI** was created by **Wichai Patipaporn**. **Gary Butler** recreated its source through disassembly and developed **GTHAI**, initially adding IBM printer support. This project, maintained by **too101**, builds on GThai 3.12 and replaces its EGA 640×350 / 8×14 display path with VGA and taller, more detailed glyphs. Hercules and EGA adapters are no longer supported.
+The original **VTHAI** was created by **Wichai Patipaporn**. **Gary Butler** disassembled VTHAI, added IBM printer support, and developed it into **GTHAI**. This project builds on GThai 3.12, updates its graphics display, and fixes additional compatibility issues.
 
-The revised fonts combine and adapt glyphs from **AxTHAI**, **ThaiPro**, and **AST BIOS Font**. Additional fixes improve Microsoft EDIT compatibility, screen preservation and mode switching with Norton Commander, and shading-character detection. The current defaults are **Epson printing** and **two-column vowel compensation**.
+The original EGA/VGA display path used **EGA graphics mode at 640×350 with 8×14-pixel fonts**, alongside a separate Hercules display path. This project switches to **VGA graphics mode at 640×480 with 8×19-pixel fonts** for more detailed glyphs and removes Hercules and EGA support.
+
+The revised fonts combine and adapt glyphs from **AxTHAI**, **ThaiPro**, and **AST ROM BIOS Font**. Fixes improve display compatibility with **Microsoft EDIT** and **Norton Commander**. Frame and shading detection uses character context, checks screen boundaries, and considers neighbouring cell colours when identifying vertical lines.
+
+Display options include English, Thai 8-line mode without automatic vowel/tone composition, and Thai 25-line mode with composition. The settings dialog supports the taller fonts, and the Thai cursor spans the full character height.
 
 Both executables provide the same features and fonts; load only one at a time. The 386 build remains a 16-bit DOS real-mode program, uses 32-bit instructions for glyph copying and composition, and preserves the interrupted program’s upper register bits. VGA drawing and latch scrolling remain byte-based. In a controlled DOSBox-X comparison on the same emulated 386, it reduced Thai composition time by **23.1%** and composed Thai drawing time by **9.2%**. These are emulator microbenchmarks, not real-hardware measurements; see the [benchmark report](docs/BENCHMARK.md).
 
 ## ความสามารถ
 
-- แสดงข้อความ 80 คอลัมน์ × 25 แถว รองรับโหมดอังกฤษ ไทย 8 บรรทัด และไทย 25 บรรทัด
+- แสดงข้อความ 80 คอลัมน์ × 25 แถว รองรับโหมดอังกฤษ ไทย 8 บรรทัด (ไม่ผสมสระ–วรรณยุกต์อัตโนมัติ) และไทย 25 บรรทัด
 - ผสมพยัญชนะ สระ และวรรณยุกต์ โดยยกวรรณยุกต์เมื่อมีสระบน
-- ตรวจเส้นกรอบและแรเงา `░ ▒ ▓` ทั้งแนวนอนและแนวตั้ง
-- ใช้สีช่องข้างเคียงช่วยตรวจเส้นตั้ง
+- ตรวจเส้นกรอบและแรเงา ทั้งแนวนอนและแนวตั้ง ใช้สีช่องข้างเคียงช่วยตรวจเส้นตั้ง
 - หน้าตั้งค่ารองรับฟอนต์ 8×19 จุด และ cursor ไทยสูงเต็มตัวอักษร
-- ค่าเริ่มต้น: เครื่องพิมพ์ **Epson**, ชดเชยสระ **2 ช่อง**
 
 ส่วนแสดงผลใช้ VGA mode 12h โดยไม่มี backend Hercules/EGA
 
 ## เปรียบเทียบภาพ EGA และ VGA
 
-ภาพแต่ละคู่แสดงในขนาด **640×480 เท่ากัน** เพื่อเปรียบเทียบรายละเอียดตัวอักษรและสระ–วรรณยุกต์บนพื้นที่แสดงผลเดียวกัน ภาพ EGA ต้นฉบับมีขนาด 640×350 จึงจัดภาพเปรียบเทียบให้มีสัดส่วน 4:3 เช่นเดียวกับ VGA โดยเก็บไฟล์ภาพต้นฉบับไว้ครบ คลิกภาพเพื่อเปิดต้นฉบับได้
+แสดง screenshot จากไฟล์ PNG ต้นฉบับโดยไม่ปรับขนาดหรือยืดสัดส่วน: EGA มีขนาด **640×350** และ VGA มีขนาด **640×480** จึงมีความสูงต่างกัน คลิกภาพเพื่อเปิดไฟล์ต้นฉบับได้
 
 ### Norton Commander
 
-**EGA — 640×350, ฟอนต์ 8×14 จุด**
+**VTHAI/GTHAI เดิม EGA — 640×350, ฟอนต์ 8×14 จุด**
 
-<a href="docs/images/norton-commander-ega.png"><img src="docs/images/norton-commander-ega-640x480.svg" alt="Norton Commander ในโหมด EGA 640x350 ฟอนต์ 8x14 แสดงในขนาด 640x480 เพื่อเปรียบเทียบ" width="640"></a>
+<a href="docs/images/norton-commander-ega.png"><img src="docs/images/norton-commander-ega.png" alt="Norton Commander ในโหมด EGA 640x350 ฟอนต์ 8x14"></a>
 
-**VGA — 640×480, ฟอนต์ 8×19 จุด** (ภาพจาก GThai 3.28)
+**GTHAI VGA — 640×480, ฟอนต์ 8×19 จุด** (ภาพจาก GThai 3.28)
 
-<a href="docs/images/norton-commander-vga.png"><img src="docs/images/norton-commander-vga.png" alt="Norton Commander ในโหมด VGA 640x480 ฟอนต์ 8x19" width="640"></a>
+<a href="docs/images/norton-commander-vga.png"><img src="docs/images/norton-commander-vga.png" alt="Norton Commander ในโหมด VGA 640x480 ฟอนต์ 8x19"></a>
 
 ### หน้าตั้งค่า
 
-**EGA — GThai 3.12, ฟอนต์ 8×14 จุด**
+**VTHAI/GTHAI เดิม EGA — GThai 3.12, ฟอนต์ 8×14 จุด**
 
-<a href="docs/images/settings-ega.png"><img src="docs/images/settings-ega-640x480.svg" alt="หน้าตั้งค่า GThai 3.12 ในโหมด EGA แสดงในขนาด 640x480 เพื่อเปรียบเทียบ" width="640"></a>
+<a href="docs/images/settings-ega.png"><img src="docs/images/settings-ega.png" alt="หน้าตั้งค่า GThai 3.12 ในโหมด EGA"></a>
 
-**VGA — ฟอนต์ 8×19 จุด** (ภาพจาก GThai 3.22)
+**GTHAI VGA — ฟอนต์ 8×19 จุด** (ภาพจาก GThai 3.22)
 
-<a href="docs/images/settings-vga.png"><img src="docs/images/settings-vga.png" alt="หน้าตั้งค่า GThai ในโหมด VGA 640x480 ฟอนต์ 8x19" width="640"></a>
+<a href="docs/images/settings-vga.png"><img src="docs/images/settings-vga.png" alt="หน้าตั้งค่า GThai ในโหมด VGA 640x480 ฟอนต์ 8x19"></a>
 
 ## ใช้งานบน DOS
 
