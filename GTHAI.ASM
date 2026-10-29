@@ -232,6 +232,7 @@ OLDSEG24    DW    0H
 ; VIDEO SAVE AREA
 ;======================================================================
 
+         ALIGN 16
 VID_SAVE    DB  4000 DUP(0)      ;VIDEO BUFFER
 VIDLINE2 = VID_SAVE+160         ;ADDRESS OF LINE 2 - Used for quick scroll
 
@@ -382,10 +383,12 @@ CRIT_ERR ENDP
 
 ;------------------------------------------------------------
 SAVE_SCREEN PROC  NEAR
+         CALL INVALIDATE_ROW_IMAGES
 ;------------------------------------------------------------
 ; A hotkey can interrupt a timer batch between glyphs. Cancel its cached GC state.
          CALL VGA_BATCH_FLUSH
          MOV BYTE PTR CS:[VGA_BATCH_ACTIVE],0
+         MOV BYTE PTR CS:[VGA_ROW_ACTIVE],0
          MOV   AX,BIOS_SEG                      ;POINT DS TO BIOS DATA AREA
          MOV   DS,AX
          MOV   AX,WORD PTR DS:[BIOS_CURSOR_ADDRESS]      ;Get cursor position for video page 0
@@ -415,6 +418,7 @@ SAVE_SCREEN ENDP
 
 ;------------------------------------------------------------
 RESTORE_SCREEN PROC NEAR
+         CALL INVALIDATE_ROW_IMAGES
 ;------------------------------------------------------------
          MOV   DX,GRAPHICS_ADDRESS_REG
          MOV   AX,1 
@@ -1246,6 +1250,7 @@ VIDFUNCS LABEL WORD
 CSTVID_MAX = ($-VIDFUNCS)/2
 
 CSTM_VID PROC NEAR
+         CALL INVALIDATE_ROW_IMAGES
          CMP   AH,(CSTVID_MAX+1) OR 80H  ;93H            ;Mode (-80h) = 0 - 12h
          JNC   BAD_MODE
          PUSH  AX                ;Save mode
@@ -3000,22 +3005,49 @@ L4BBEH:
          RET
 P_0026   ENDP
 
- ; Shade seeds: prefer the existing horizontal rule, then try a vertical run.
+ ; Each 32-byte block lies entirely within one 160-byte text row.
+; Return row start in DX, preserving all other registers (8086 instructions).
+TEXT_ROW_START MACRO
+         PUSH BX
+         MOV BX,SI
+IFDEF CPU_386
+         SHR BX,5
+ELSE
+         SHR BX,1
+         SHR BX,1
+         SHR BX,1
+         SHR BX,1
+         SHR BX,1
+ENDIF
+         SHL BX,1
+         MOV DX,WORD PTR CS:[TEXT_ROW_STARTS+BX]
+         POP BX
+ENDM
+TEXT_ROW_STARTS LABEL WORD
+         DW 0,0,0,0,0,160,160,160,160,160
+         DW 320,320,320,320,320,480,480,480,480,480
+         DW 640,640,640,640,640,800,800,800,800,800
+         DW 960,960,960,960,960,1120,1120,1120,1120,1120
+         DW 1280,1280,1280,1280,1280,1440,1440,1440,1440,1440
+         DW 1600,1600,1600,1600,1600,1760,1760,1760,1760,1760
+         DW 1920,1920,1920,1920,1920,2080,2080,2080,2080,2080
+         DW 2240,2240,2240,2240,2240,2400,2400,2400,2400,2400
+         DW 2560,2560,2560,2560,2560,2720,2720,2720,2720,2720
+         DW 2880,2880,2880,2880,2880,3040,3040,3040,3040,3040
+         DW 3200,3200,3200,3200,3200,3360,3360,3360,3360,3360
+         DW 3520,3520,3520,3520,3520,3680,3680,3680,3680,3680
+         DW 3840,3840,3840,3840,3840
+
+; Shade seeds: prefer the existing horizontal rule, then try a vertical run.
 ; BX still identifies the original seven-byte rule; preserve caller registers.
 DETECT_SHADE PROC NEAR
          CMP SI,SCREEN_SIZE*2
          JAE SHADE_NOT_FOUND
-         PUSH AX
-         PUSH CX
          PUSH DX
-         MOV AX,SI
-         XOR DX,DX
-         MOV CX,160
-         DIV CX
-         CMP DX,156             ;Need two following cells in this row
+         TEXT_ROW_START
+         ADD DX,156             ;Need two following cells in this row
+         CMP SI,DX
          POP DX
-         POP CX
-         POP AX
          JAE SHADE_TRY_VERTICAL
          CMP BYTE PTR [SI+2],AL
          JNE SHADE_TRY_VERTICAL
@@ -3041,16 +3073,9 @@ DETECT_SHADE ENDP
 MARK_SHADE_HORIZONTAL PROC NEAR
          PUSH CX
          PUSH DX
-         PUSH AX
-         MOV AX,SI
-         XOR DX,DX
-         MOV CX,160
-         DIV CX
-         MOV CX,SI
-         SUB CX,DX              ;Start of this text row
-         MOV DX,CX
+         TEXT_ROW_START
+         MOV CX,DX              ;Start of this text row
          ADD DX,160             ;End of this text row
-         POP AX
          MOV DI,SI
 SHADE_MARK_RIGHT:
          CMP DI,DX
@@ -3144,20 +3169,14 @@ L4BC1H:
          CMP BYTE PTR [SI+320],AL
          JNZ L4BBEH
 ; Colour hint: only interior columns have two sides.
-         PUSH AX
-         PUSH CX
          PUSH DX
-         MOV AX,SI
-         XOR DX,DX
-         MOV CX,160
-         DIV CX
-         OR DX,DX
-         JZ COLOR_HINT_EDGE
-         CMP DX,158
+         TEXT_ROW_START
+         CMP SI,DX
+         JE COLOR_HINT_EDGE
+         ADD DX,158
+         CMP SI,DX
          JE COLOR_HINT_EDGE
          POP DX
-         POP CX
-         POP AX
          MOV AH,BYTE PTR [SI+1]
          MOV AL,BYTE PTR [SI-1]
          AND AL,7FH             ;Ignore the driver's internal frame marker
@@ -3170,8 +3189,6 @@ L4BC1H:
          JMP COLOR_HINT_FALLBACK
 COLOR_HINT_EDGE:
          POP DX
-         POP CX
-         POP AX
 COLOR_HINT_FALLBACK:
          MOV AX,WORD PTR [SI-2]
          OR    AH,AH
@@ -3393,6 +3410,7 @@ VGA_BATCH_ACTIVE DB 0
 VGA_BATCH_VALID DB 0
 VGA_BATCH_FLUSH PROC NEAR
          PUSHF
+         MOV BYTE PTR CS:[VGA_LATCH_VALID],0
          CMP BYTE PTR CS:[VGA_BATCH_VALID],0
          JE VBF_DONE
          PUSH AX
@@ -3410,10 +3428,721 @@ VBF_DONE:
          RET
 VGA_BATCH_FLUSH ENDP
 
+; Keep logical B800 offsets in SI while DS aliases this aligned row buffer.
+; Only the row's text reads use the alias; classifiers retain real B800 context.
+; Latches cannot survive an arbitrary interrupt handler. Reuse them only while
+; interrupts are masked, in bounded groups of at most eight glyphs.
+ROW_GROUP_HELD DB 0
+ROW_GROUP_LEFT DB 0
+ROW_GROUP_FLAGS DW 0
+ROW_GROUP_END PROC NEAR
+         CMP BYTE PTR CS:[ROW_GROUP_HELD],0
+         JE RGE_DONE
+         MOV BYTE PTR CS:[VGA_LATCH_VALID],0
+         MOV BYTE PTR CS:[ROW_GROUP_HELD],0
+         PUSH WORD PTR CS:[ROW_GROUP_FLAGS]
+         POPF
+RGE_DONE:
+         RET
+ROW_GROUP_END ENDP
+
+ROW_GLYPH_WRITER DW L62B3H
+VGA_ROW_ACTIVE DB 0
+VGA_LATCH_VALID DB 0
+VGA_LAST_ATTR DB 0
+         ALIGN 16
+ROW_TEXT_GUARD DB 16 DUP(0)
+ROW_TEXT_BUFFER DB 160 DUP(0)
+ROW_TEXT_AFTER DW 0
+STAGE_ROW_TEXT PROC NEAR
+         MOV BYTE PTR CS:[VGA_ROW_ACTIVE],0
+         MOV BYTE PTR CS:[VGA_LATCH_VALID],0
+         MOV WORD PTR CS:[ROW_GLYPH_WRITER],OFFSET L62B3H
+; Conservative gate: sparse/alternating row starts retain the cheaper direct path.
+         CMP BYTE PTR CS:[VGA_BATCH_ACTIVE],0
+         JE SRT_DIRECT
+         CMP BYTE PTR [SI],' '
+         JE SRT_DIRECT
+         CMP BYTE PTR [SI+2],' '
+         JE SRT_DIRECT
+         PUSH AX
+         MOV AH,[SI+1]
+         XOR AH,[SI+3]
+         TEST AH,0F0H
+         POP AX
+         JNZ SRT_DIRECT
+         _PUSH AX,CX,DX,SI,DI,BP,ES
+         MOV BP,SI
+         MOV BYTE PTR CS:[VGA_LATCH_VALID],0
+         MOV AX,CS
+         MOV ES,AX
+         XOR AX,AX
+         OR SI,SI
+         JZ SRT_PREVIOUS
+         MOV AX,[SI-2]
+SRT_PREVIOUS:
+         MOV WORD PTR CS:[ROW_TEXT_BUFFER-2],AX
+         XOR AX,AX
+         CMP SI,24*160
+         JAE SRT_NEXT
+         MOV AX,[SI+160]
+SRT_NEXT:
+         MOV CS:[ROW_TEXT_AFTER],AX
+         MOV DI,OFFSET ROW_TEXT_BUFFER
+IFDEF CPU_386
+         MOV CX,40
+         REP MOVSD              ;160 bytes; 16-bit SI/DI/CX, no EAX clobber.
+ELSE
+         MOV CX,80
+         REP MOVSW
+ENDIF
+         MOV AX,OFFSET ROW_TEXT_BUFFER
+         SHR AX,1
+         SHR AX,1
+         SHR AX,1
+         SHR AX,1
+         MOV DX,CS
+         ADD AX,DX
+         MOV DX,BP
+         SHR DX,1
+         SHR DX,1
+         SHR DX,1
+         SHR DX,1
+         SUB AX,DX
+         MOV DS,AX
+         MOV BYTE PTR CS:[VGA_ROW_ACTIVE],1
+         MOV WORD PTR CS:[ROW_GLYPH_WRITER],OFFSET STAGED_GLYPH
+         _POP ES,BP,DI,SI,DX,CX,AX
+         RET
+SRT_DIRECT:
+         RET
+STAGE_ROW_TEXT ENDP
+
+CLASSIFY_ROW_CELL PROC NEAR
+         CMP BYTE PTR CS:[ROW_PLAN_MODE],1
+         JE CRC_NOT_FRAME
+; Match L4B7FH's cheap rejection without reading real VGA text for ASCII.
+         MOV AX,[SI]
+         OR AH,AH
+         JS CRC_NOT_FRAME
+         SUB AL,0B0H
+         JS CRC_NOT_FRAME
+         CMP AL,30H
+         JAE CRC_NOT_FRAME
+         CALL ROW_GROUP_END
+         PUSH DS
+         MOV DS,CS:[VID_SEG]
+         MOV BYTE PTR CS:[VGA_LATCH_VALID],0
+         CALL L4B7FH
+         POP DS
+         RET
+CRC_NOT_FRAME:
+         XOR AL,AL
+         RET
+CLASSIFY_ROW_CELL ENDP
+
+; Compare final 19-row output rather than raw source columns. Only sparse
+; changes use this two-pass plan; full redraws retain the original one pass.
+ROW_PIXEL_PLAN DB 480 DUP(0)
+ROW_DESC_ACTIVE DB 0
+CURRENT_RENDER_DESC DB 6 DUP(0)
+ROW_PLAN_GUARD DW 0A55AH
+ROW_CACHED_ID DB 0FFH
+ROW_CACHED_EPOCH DW 0
+ROW_PLAN_PTR DW 0
+ROW_UPDATE_ACTIVE DB 0
+ROW_FORCE_REDRAW DB 0
+ROW_ASCII_ONLY DB 0
+ROW_PLAN_MODE DB 0
+ROW_RENDER_ABORT DB 0
+ROW_SOURCE_START DW 0
+ROW_DRAW_EPOCH DW 0
+DISPLAY_EPOCH DW 0
+ROW_IMAGE_VALID DB 25 DUP(0)
+ROW_LAYOUT_OPTIONS DW 25 DUP(0)
+ROW_REAL_GLYPH_WRITER DW L62B3H
+ROW_BLANK_WRITER DW L6289H
+
+INVALIDATE_ROW_IMAGES PROC NEAR
+         PUSHF
+         _PUSH AX,CX,DI,ES
+         CLD
+         INC WORD PTR CS:[DISPLAY_EPOCH]
+         MOV BYTE PTR CS:[ROW_CACHED_ID],0FFH
+         CMP BYTE PTR CS:[ROW_UPDATE_ACTIVE],0
+         JE IRI_IDLE
+         MOV BYTE PTR CS:[ROW_FORCE_REDRAW],1
+IRI_IDLE:
+         MOV AX,CS
+         MOV ES,AX
+         MOV DI,OFFSET ROW_IMAGE_VALID
+         MOV CX,25
+         XOR AX,AX
+         REP STOSB
+         _POP ES,DI,CX,AX
+         POPF
+         RET
+INVALIDATE_ROW_IMAGES ENDP
+
+PREPARE_PARTIAL_ROW PROC NEAR
+         _PUSH AX,BX,CX,DX,SI,DI,BP,DS,ES
+         MOV BYTE PTR CS:[ROW_PLAN_MODE],0
+         MOV BYTE PTR CS:[ROW_DESC_ACTIVE],0
+         MOV WORD PTR CS:[ROW_BLANK_WRITER],OFFSET L6289H
+         MOV CS:[ROW_SOURCE_START],SI
+         MOV AX,CS:[DISPLAY_EPOCH]
+         MOV CS:[ROW_DRAW_EPOCH],AX
+         CMP BYTE PTR CS:[ROW_IMAGE_VALID+BX],0
+         JE PPR_DONE
+         MOV DI,BX
+         SHL DI,1
+         MOV AX,WORD PTR CS:[DISPXLAT]
+         CMP AX,CS:[ROW_LAYOUT_OPTIONS+DI]
+         JNE PPR_INVALID
+; Keep the fast blank-run path for rows with a sparse/indented start.
+         CMP BYTE PTR [SI],' '
+         JE PPR_INVALID
+         CMP BYTE PTR [SI+2],' '
+         JE PPR_INVALID
+         MOV BYTE PTR CS:[ROW_ASCII_ONLY],1
+         TEST BYTE PTR CS:[DISPXLAT],1
+         JZ PPR_SCAN_SETUP
+         MOV BYTE PTR CS:[ROW_ASCII_ONLY],0
+PPR_SCAN_SETUP:
+         MOV AX,CS
+         MOV ES,AX
+         MOV DI,OFFSET VID_SAVE
+         ADD DI,SI
+         XOR DX,DX
+         MOV CX,80
+PPR_DIFF:
+         LODSW
+         TEST AL,80H
+         JNZ PPR_COMPLEX
+         TEST BYTE PTR ES:[DI],80H
+         JZ PPR_COMPARE
+PPR_COMPLEX:
+         MOV BYTE PTR CS:[ROW_ASCII_ONLY],0
+PPR_COMPARE:
+         CMP AX,ES:[DI]
+         JE PPR_SAME
+         INC DX
+         CMP DX,8
+         JA PPR_INVALID
+PPR_SAME:
+         ADD DI,2
+         LOOP PPR_DIFF
+         OR DX,DX
+         JZ PPR_INVALID
+         MOV BYTE PTR CS:[ROW_IMAGE_VALID+BX],0
+         CMP BYTE PTR CS:[ROW_ASCII_ONLY],0
+         JE PPR_PIXEL_PLAN
+         CMP BL,CS:[ROW_CACHED_ID]
+         JNE PPR_ASCII_READY
+         MOV BYTE PTR CS:[ROW_CACHED_ID],0FFH
+PPR_ASCII_READY:
+         MOV BYTE PTR CS:[ROW_PLAN_MODE],3
+         JMP PPR_DONE
+PPR_PIXEL_PLAN:
+         CMP BL,CS:[ROW_CACHED_ID]
+         JNE PPR_BUILD_PLAN
+         MOV AX,CS:[DISPLAY_EPOCH]
+         CMP AX,CS:[ROW_CACHED_EPOCH]
+         JNE PPR_BUILD_PLAN
+         MOV BYTE PTR CS:[ROW_CACHED_ID],0FFH
+         MOV BYTE PTR CS:[ROW_PLAN_MODE],2
+         MOV BYTE PTR CS:[ROW_DESC_ACTIVE],1
+         JMP PPR_DONE
+PPR_BUILD_PLAN:
+         MOV BYTE PTR CS:[ROW_CACHED_ID],0FFH
+         MOV DI,OFFSET ROW_PIXEL_PLAN
+         XOR AX,AX
+         MOV CX,240
+         REP STOSW
+         MOV WORD PTR CS:[ROW_PLAN_PTR],OFFSET ROW_PIXEL_PLAN
+         MOV WORD PTR CS:[ROW_GLYPH_WRITER],OFFSET CAPTURE_OLD_GLYPH
+         MOV WORD PTR CS:[ROW_BLANK_WRITER],OFFSET CAPTURE_OLD_BLANK
+         MOV BYTE PTR CS:[ROW_PLAN_MODE],1
+         MOV BYTE PTR CS:[ROW_DESC_ACTIVE],1
+         MOV AX,OFFSET VID_SAVE
+         SHR AX,1
+         SHR AX,1
+         SHR AX,1
+         SHR AX,1
+         MOV DX,CS
+         ADD AX,DX
+         MOV DS,AX
+         MOV SI,CS:[ROW_SOURCE_START]
+         MOV DI,BX
+         SHL DI,1
+         MOV DI,CS:[L0506H+DI]
+         XOR DX,DX
+         MOV CX,80
+         CALL RENDER_ROW_BODY
+         MOV AX,CS:[DISPLAY_EPOCH]
+         CMP AX,CS:[ROW_DRAW_EPOCH]
+         JNE PPR_CANCEL
+         MOV BYTE PTR CS:[ROW_PLAN_MODE],2
+         JMP SHORT PPR_DONE
+PPR_CANCEL:
+         MOV BYTE PTR CS:[ROW_PLAN_MODE],0
+         MOV BYTE PTR CS:[ROW_DESC_ACTIVE],0
+         JMP SHORT PPR_DONE
+PPR_INVALID:
+         MOV BYTE PTR CS:[ROW_IMAGE_VALID+BX],0
+         CMP BL,CS:[ROW_CACHED_ID]
+         JNE PPR_DONE
+         MOV BYTE PTR CS:[ROW_CACHED_ID],0FFH
+PPR_DONE:
+         _POP ES,DS,BP,DI,SI,DX,CX,BX,AX
+         RET
+PREPARE_PARTIAL_ROW ENDP
+
+SELECT_ROW_WRITERS PROC NEAR
+         MOV WORD PTR CS:[ROW_BLANK_WRITER],OFFSET L6289H
+         CMP BYTE PTR CS:[ROW_PLAN_MODE],0
+         JE SRW_DONE
+         PUSH AX
+         MOV AX,CS:[ROW_GLYPH_WRITER]
+         MOV CS:[ROW_REAL_GLYPH_WRITER],AX
+         MOV WORD PTR CS:[ROW_GLYPH_WRITER],OFFSET PARTIAL_GLYPH
+         MOV WORD PTR CS:[ROW_BLANK_WRITER],OFFSET PARTIAL_BLANK
+         MOV AX,OFFSET ROW_PIXEL_PLAN
+         CMP BYTE PTR CS:[ROW_PLAN_MODE],3
+         JNE SRW_POINTER
+         MOV AX,CS:[ROW_SOURCE_START]
+         ADD AX,OFFSET VID_SAVE
+SRW_POINTER:
+         MOV CS:[ROW_PLAN_PTR],AX
+         POP AX
+SRW_DONE:
+         RET
+SELECT_ROW_WRITERS ENDP
+
+VALIDATE_RENDERED_ROW PROC NEAR
+         _PUSH AX,DI
+         MOV AX,CS:[DISPLAY_EPOCH]
+         CMP AX,CS:[ROW_DRAW_EPOCH]
+         JNE VRR_DONE
+         MOV BYTE PTR CS:[ROW_IMAGE_VALID+BX],1
+         CMP BYTE PTR CS:[ROW_PLAN_MODE],2
+         JNE VRR_OPTIONS
+         MOV CS:[ROW_CACHED_ID],BL
+         MOV CS:[ROW_CACHED_EPOCH],AX
+VRR_OPTIONS:
+         MOV DI,BX
+         SHL DI,1
+         MOV AX,WORD PTR CS:[DISPXLAT]
+         MOV CS:[ROW_LAYOUT_OPTIONS+DI],AX
+VRR_DONE:
+         _POP DI,AX
+         RET
+VALIDATE_RENDERED_ROW ENDP
+
+CAPTURE_OLD_GLYPH PROC NEAR
+         _PUSH AX,BP
+         MOV BP,CS:[ROW_PLAN_PTR]
+         MOV AX,WORD PTR CS:[CURRENT_RENDER_DESC]
+         MOV CS:[BP],AX
+         MOV AX,WORD PTR CS:[CURRENT_RENDER_DESC+2]
+         MOV CS:[BP+2],AX
+         MOV AX,WORD PTR CS:[CURRENT_RENDER_DESC+4]
+         MOV CS:[BP+4],AX
+         ADD WORD PTR CS:[ROW_PLAN_PTR],6
+         _POP BP,AX
+         RET
+CAPTURE_OLD_GLYPH ENDP
+CAPTURE_OLD_BLANK PROC NEAR
+         _PUSH AX,BP
+         MOV BP,CS:[ROW_PLAN_PTR]
+         MOV WORD PTR CS:[BP],2
+         MOV WORD PTR CS:[BP+2],0
+         AND AH,0F0H
+         XOR AL,AL
+         MOV WORD PTR CS:[BP+4],AX
+         ADD WORD PTR CS:[ROW_PLAN_PTR],6
+         _POP BP,AX
+         RET
+CAPTURE_OLD_BLANK ENDP
+
+WRITE_CURRENT_PLAN PROC NEAR
+         MOV AX,WORD PTR CS:[CURRENT_RENDER_DESC]
+         MOV CS:[BP],AX
+         MOV AX,WORD PTR CS:[CURRENT_RENDER_DESC+2]
+         MOV CS:[BP+2],AX
+         MOV AX,WORD PTR CS:[CURRENT_RENDER_DESC+4]
+         MOV CS:[BP+4],AX
+         RET
+WRITE_CURRENT_PLAN ENDP
+WRITE_BLANK_PLAN PROC NEAR
+         MOV WORD PTR CS:[BP],2
+         MOV WORD PTR CS:[BP+2],0
+         MOV AX,DX
+         AND AH,0F0H
+         XOR AL,AL
+         MOV WORD PTR CS:[BP+4],AX
+         RET
+WRITE_BLANK_PLAN ENDP
+
+PARTIAL_GLYPH PROC NEAR
+         PUSHF
+         _PUSH AX,DX,BP
+         MOV DX,AX
+         MOV BP,CS:[ROW_PLAN_PTR]
+         CMP BYTE PTR CS:[ROW_PLAN_MODE],3
+         JNE PG_DESCRIPTOR
+         ADD WORD PTR CS:[ROW_PLAN_PTR],2
+         MOV AX,CS:[DISPLAY_EPOCH]
+         CMP AX,CS:[ROW_DRAW_EPOCH]
+         JNE PG_CHANGED
+         CMP DX,CS:[BP]
+         JE PG_SAME
+         JMP PG_CHANGED
+PG_DESCRIPTOR:
+         ADD WORD PTR CS:[ROW_PLAN_PTR],6
+         MOV AX,CS:[DISPLAY_EPOCH]
+         CMP AX,CS:[ROW_DRAW_EPOCH]
+         JNE PG_CHANGED
+         MOV AX,WORD PTR CS:[CURRENT_RENDER_DESC]
+         CMP AX,CS:[BP]
+         JNE PG_CHANGED
+         MOV AX,WORD PTR CS:[CURRENT_RENDER_DESC+2]
+         CMP AX,CS:[BP+2]
+         JNE PG_CHANGED
+         MOV AX,WORD PTR CS:[CURRENT_RENDER_DESC+4]
+         CMP AX,CS:[BP+4]
+         JNE PG_CHANGED
+PG_SAME:
+         CMP BYTE PTR CS:[ROW_PLAN_MODE],2
+         JNE PG_SKIP_WRITE
+         CALL WRITE_CURRENT_PLAN
+PG_SKIP_WRITE:
+         _POP BP,DX,AX
+         POPF
+         CALL ROW_GROUP_END
+         RET
+PG_CHANGED:
+         CMP BYTE PTR CS:[ROW_PLAN_MODE],2
+         JNE PG_DRAW_NOW
+         CALL WRITE_CURRENT_PLAN
+PG_DRAW_NOW:
+         _POP BP,DX,AX
+         POPF
+         JMP WORD PTR CS:[ROW_REAL_GLYPH_WRITER]
+PARTIAL_GLYPH ENDP
+PARTIAL_BLANK PROC NEAR
+         PUSHF
+         _PUSH AX,DX,BP
+         MOV DX,AX
+         MOV BP,CS:[ROW_PLAN_PTR]
+         MOV AX,CS:[DISPLAY_EPOCH]
+         CMP AX,CS:[ROW_DRAW_EPOCH]
+         JE PB_MODE
+         CMP BYTE PTR CS:[ROW_PLAN_MODE],3
+         JE PB_CHANGED_ASCII
+         ADD WORD PTR CS:[ROW_PLAN_PTR],6
+         JMP PB_CHANGED
+PB_CHANGED_ASCII:
+         ADD WORD PTR CS:[ROW_PLAN_PTR],2
+         JMP PB_CHANGED
+PB_MODE:
+         CMP BYTE PTR CS:[ROW_PLAN_MODE],3
+         JNE PB_DESCRIPTOR
+         ADD WORD PTR CS:[ROW_PLAN_PTR],2
+         CMP BYTE PTR CS:[BP],20H
+         JNE PB_CHANGED
+         MOV AL,CS:[BP+1]
+         XOR AL,DH
+         TEST AL,0F0H
+         JZ PB_SAME
+         JMP PB_CHANGED
+PB_DESCRIPTOR:
+         ADD WORD PTR CS:[ROW_PLAN_PTR],6
+         CMP BYTE PTR CS:[BP],2
+         JNE PB_CHANGED
+         MOV AL,CS:[BP+5]
+         XOR AL,DH
+         TEST AL,0F0H
+         JNZ PB_CHANGED
+PB_SAME:
+         CMP BYTE PTR CS:[ROW_PLAN_MODE],2
+         JNE PB_SKIP_WRITE
+         CALL WRITE_BLANK_PLAN
+PB_SKIP_WRITE:
+         _POP BP,DX,AX
+         POPF
+         CALL ROW_GROUP_END
+         RET
+PB_CHANGED:
+         CMP BYTE PTR CS:[ROW_PLAN_MODE],2
+         JNE PB_DRAW_NOW
+         CALL WRITE_BLANK_PLAN
+PB_DRAW_NOW:
+         _POP BP,DX,AX
+         POPF
+         JMP L6289H
+PARTIAL_BLANK ENDP
+
+RECORD_DESC_FONT1 PROC NEAR
+         MOV BYTE PTR CS:[CURRENT_RENDER_DESC],0
+         JMP SHORT RDF_COMMON
+RECORD_DESC_FONT1 ENDP
+RECORD_DESC_FONT2 PROC NEAR
+         MOV BYTE PTR CS:[CURRENT_RENDER_DESC],1
+RDF_COMMON:
+         MOV CS:[CURRENT_RENDER_DESC+1],AL
+         MOV WORD PTR CS:[CURRENT_RENDER_DESC+2],0
+         MOV BYTE PTR CS:[CURRENT_RENDER_DESC+4],0
+         MOV CS:[CURRENT_RENDER_DESC+5],AH
+         RET
+RECORD_DESC_FONT2 ENDP
+
+RENDER_ROW_BODY PROC NEAR
+L4D0AH:  
+        MOV   AL,BYTE PTR [SI]
+         CMP   AL,' '
+         JNZ   L4D4EH
+         MOV   BX,SI
+L4D12H:  
+        INC   BX
+         INC   BX
+         CMP   BYTE PTR [BX],AL
+         LOOPZ L4D12H            ;Dec CX, loop if Z and CX<>0.
+         SUB   BX,SI
+         SHR   BX,1
+         CMP   CS:[DISPLAY_COLUMN_ADJUST],CH
+         JZ    L4D3DH
+         CMP   BL,CS:[DISPLAY_COLUMN_ADJUST]
+         JC    L4D3DH
+         MOV   AH,BYTE PTR [SI]-1
+         OR    DH,DH
+         JZ    L4D3DH
+L4D31H:  
+         CALL ROW_GROUP_END
+        PUSH  AX
+         CALL WORD PTR CS:[ROW_BLANK_WRITER]
+         POP   AX
+         INC   DI
+         DEC   DH
+         JNZ   L4D31H
+L4D3DH:
+         CALL ROW_GROUP_END
+; BX is the logical space run counted above: retain vowel compensation rules.
+         CALL BLANK_TEXT_RUN
+         OR    CX,CX
+         JZ L4EB0H
+
+L4D4EH:  
+        CALL CLASSIFY_ROW_CELL
+         JZ    L4D58H
+         MOV BYTE PTR CS:[ROW_RENDER_ABORT],1
+         CALL ROW_GROUP_END
+         RET
+
+L4D58H:  
+        MOV   AX,WORD PTR [SI]
+         OR    AL,AL
+         JNS   L4D8BH
+         OR    AH,AH
+         JNS   L4D8BH
+         MOV   AH,BYTE PTR [SI]-1
+         OR    DH,DH
+         JZ    L4D75H
+L4D69H:  
+         CALL ROW_GROUP_END
+        PUSH  AX
+         CALL WORD PTR CS:[ROW_BLANK_WRITER]
+         POP   AX
+         INC   DI
+         DEC   DH
+         JNZ   L4D69H
+L4D75H:  
+        LODSW                   ;Load AX with wrd at DS:SI ++.
+         AND   AX,7F7FH
+         CMP BYTE PTR CS:[ROW_DESC_ACTIVE],0
+         JE RRF1_SKIP
+         CALL RECORD_DESC_FONT1
+RRF1_SKIP:
+         MOV   BP,OFFSET FONT_1
+L4D7CH:  
+        XCHG  SI,BP
+         CALL WORD PTR CS:[ROW_GLYPH_WRITER]
+         MOV   SI,BP
+         INC   DI
+         LOOP L4D_NEXT
+         JMP L4EB0H
+L4D_NEXT:
+         JMP L4D0AH
+
+L4D8BH:  
+        MOV   BP,OFFSET FONT_2
+         INC   SI
+         INC   SI
+         CALL TRANSLATE_ALREADY_LOADED
+         CMP BYTE PTR CS:[ROW_DESC_ACTIVE],0
+         JE RRF2_SKIP
+         CALL RECORD_DESC_FONT2
+RRF2_SKIP:
+        MOV   BL,AL
+         CMP   BYTE PTR CS:[BX]+L152FH,END_OF_STRING
+         JNZ   L4D7CH
+         MOV   DL,CL
+         PUSH  AX
+         SHL   BX,1
+         MOV   BX,WORD PTR CS:[FONT_OFFSETS+BX]
+         ADD   BX,BP
+         MOV   BP,OFFSET GLYPH_COMPOSE
+         MOV   CX,CELL_HEIGHT
+L4DBEH:
+         CMP BYTE PTR CS:[ROW_PLAN_MODE],1
+         JNE RRC_COPY
+         XOR CX,CX
+         JMP SHORT RRC_DONE
+RRC_COPY:
+         CALL COPY_GLYPH19
+RRC_DONE:
+         MOV   BP,OFFSET GLYPH_COMPOSE
+         DEC   DL
+         JZ L4EA7H
+
+L4DD5H:  
+        CALL LOAD_AND_TRANSLATE
+        MOV   BL,AL
+         MOV   AH,BYTE PTR CS:[BX]+L152FH
+         SHL   BX,1
+         MOV   BX,WORD PTR CS:[FONT_OFFSETS+BX]
+         ADD   BX,OFFSET FONT_2
+         MOV   CX,CELL_HEIGHT
+         CMP   AH,7
+         JNZ   L4E47H
+L4E03H:
+         CMP BYTE PTR CS:[ROW_DESC_ACTIVE],0
+         JE L4E03H_NO_DESC
+         MOV CS:[CURRENT_RENDER_DESC+2],AL
+L4E03H_NO_DESC:
+         CMP BYTE PTR CS:[ROW_PLAN_MODE],1
+         JNE L4E03H_OR
+         XOR CX,CX
+         JMP SHORT L4E03H_DONE
+L4E03H_OR:
+         CALL OR_GLYPH_ROWS
+L4E03H_DONE:
+         MOV   BP,OFFSET GLYPH_COMPOSE
+         INC   SI
+         INC   SI
+         INC   DH
+         DEC   DL
+         JZ L4EA7H
+
+L4E1EH:
+        CALL LOAD_AND_TRANSLATE
+        MOV   BL,AL
+         MOV   AH,BYTE PTR CS:[BX]+L152FH
+         SHL   BX,1
+         MOV   BX,WORD PTR CS:[FONT_OFFSETS+BX]
+         ADD   BX,OFFSET FONT_2
+         MOV   CX,CELL_HEIGHT
+L4E47H:
+        CMP   AH,8
+         JNZ   L4E8DH
+L4E4CH:
+         CMP BYTE PTR CS:[ROW_DESC_ACTIVE],0
+         JE L4E4CH_NO_DESC
+         MOV CS:[CURRENT_RENDER_DESC+3],AL
+L4E4CH_NO_DESC:
+         CMP BYTE PTR CS:[ROW_PLAN_MODE],1
+         JNE L4E4CH_OR
+         XOR CX,CX
+         JMP SHORT L4E4CH_DONE
+L4E4CH_OR:
+         CALL OR_GLYPH_ROWS
+L4E4CH_DONE:
+         MOV   BP,OFFSET GLYPH_COMPOSE
+         INC   SI
+         INC   SI
+         INC   DH
+         DEC   DL
+         JZ    L4EA7H
+        CALL LOAD_AND_TRANSLATE
+        MOV   BL,AL
+         MOV   AH,BYTE PTR CS:[BX]+L152FH
+         SHL   BX,1
+         MOV   BX,WORD PTR CS:[FONT_OFFSETS+BX]
+         ADD   BX,OFFSET FONT_2+TONE_RAISE
+         MOV   CX,CELL_HEIGHT-TONE_RAISE
+L4E8DH:  
+        CMP   AH,HT
+         JNZ   L4EA7H
+L4E92H:
+         CMP BYTE PTR CS:[ROW_DESC_ACTIVE],0
+         JE L4E92H_NO_DESC
+         MOV CS:[CURRENT_RENDER_DESC+4],AL
+L4E92H_NO_DESC:
+         CMP BYTE PTR CS:[ROW_PLAN_MODE],1
+         JNE L4E92H_OR
+         XOR CX,CX
+         JMP SHORT L4E92H_DONE
+L4E92H_OR:
+         CALL OR_GLYPH_ROWS
+L4E92H_DONE:
+         MOV   BP,OFFSET GLYPH_COMPOSE
+         INC   SI
+L4EA3H:  
+        INC   SI
+         INC   DH
+         DEC   DX
+
+L4EA7H:  
+        POP   AX
+         MOV   AL,CH
+         MOV   CL,DL
+         INC   CX
+         JMP   L4D7CH
+
+L4EB0H:  
+        MOV   AH,BYTE PTR [SI]-1
+         OR    DH,DH
+         JZ ROW_RENDER_RETURN
+L4EB7H:  
+         CALL ROW_GROUP_END
+        PUSH  AX
+         CALL WORD PTR CS:[ROW_BLANK_WRITER]
+         POP   AX
+         INC   DI
+         DEC   DH
+         JNZ   L4EB7H
+ROW_RENDER_RETURN:
+         CALL ROW_GROUP_END
+         RET
+RENDER_ROW_BODY ENDP
+
+FORCE_DIRTY_SNAPSHOT PROC NEAR
+         _PUSH AX,CX,SI,DI,DS,ES
+         MOV DS,CS:[VID_SEG]
+         MOV AX,CS
+         MOV ES,AX
+         XOR SI,SI
+         MOV DI,OFFSET VID_SAVE
+         MOV CX,SCREEN_SIZE
+FDS_LOOP:
+         LODSW
+         NOT AX
+         STOSW
+         LOOP FDS_LOOP
+         _POP ES,DS,DI,SI,CX,AX
+         RET
+FORCE_DIRTY_SNAPSHOT ENDP
+
 UPDATE_SCREEN_THAI_25 PROC NEAR
+         CLD
+         MOV BYTE PTR CS:[ROW_UPDATE_ACTIVE],1
+         CMP BYTE PTR CS:[ROW_FORCE_REDRAW],0
+         JE UPD_25_NORMAL
+         MOV BYTE PTR CS:[ROW_FORCE_REDRAW],0
+         CALL FORCE_DIRTY_SNAPSHOT
+UPD_25_NORMAL:
          MOV BYTE PTR CS:[VGA_BATCH_ACTIVE],1
-         CLD                     ;Set forward direction flag.
-L4CA3H:  
+L4CA3H:
          MOV   DS,CS:[VID_SEG]
          CALL  L4C01H
 
@@ -3440,7 +4169,7 @@ ENDIF                            ;Has video memory changed?
          CALL  DRAW_CURSOR_VGA           ;Turn it on
          JMP   UPD_25_EXIT
 
-VMEM_CHANGED_25:  
+VMEM_CHANGED_25:
         MOV   DI,WORD PTR CS:[VID_OFFSET]
          CALL  DRAW_CURSOR_VGA
          DEC   SI
@@ -3451,185 +4180,43 @@ VMEM_CHANGED_25:
          DIV   CX
          MOV   BX,AX
          SUB   SI,DX
-L4CFAH:  
+L4CFAH:
+         CALL PREPARE_PARTIAL_ROW
+         CALL STAGE_ROW_TEXT
         _PUSH BX,SI
          MOV   ES,WORD PTR CS:[VIDBUF]
          SHL   BX,1
          MOV   DI,WORD PTR CS:[BX]+L0506H
          MOV   CL,80
-L4D0AH:  
-        MOV   AL,BYTE PTR [SI]
-         CMP   AL,' '
-         JNZ   L4D4EH
-         MOV   BX,SI
-L4D12H:  
-        INC   BX
-         INC   BX
-         CMP   BYTE PTR [BX],AL
-         LOOPZ L4D12H            ;Dec CX, loop if Z and CX<>0.
-         SUB   BX,SI
-         SHR   BX,1
-         CMP   CS:[DISPLAY_COLUMN_ADJUST],CH
-         JZ    L4D3DH
-         CMP   BL,CS:[DISPLAY_COLUMN_ADJUST]
-         JC    L4D3DH
-         MOV   AH,BYTE PTR [SI]-1
-         OR    DH,DH
-         JZ    L4D3DH
-L4D31H:  
-        PUSH  AX
-         CALL  L6289H
-         POP   AX
-         INC   DI
-         DEC   DH
-         JNZ   L4D31H
-L4D3DH:  
-        LODSW                   ;Load AX with wrd at DS:SI ++.
-         CALL  L6289H
-         INC   DI
-         DEC   BX
-         JNZ   L4D3DH
-         OR    CX,CX
-         JZ L4EB0H
-
-L4D4EH:  
-        CALL  L4B7FH
-         JZ    L4D58H
-         _POP  SI,BX
-         JMP   L4EE5H
-
-L4D58H:  
-        MOV   AX,WORD PTR [SI]
-         OR    AL,AL
-         JNS   L4D8BH
-         OR    AH,AH
-         JNS   L4D8BH
-         MOV   AH,BYTE PTR [SI]-1
-         OR    DH,DH
-         JZ    L4D75H
-L4D69H:  
-        PUSH  AX
-         CALL  L6289H
-         POP   AX
-         INC   DI
-         DEC   DH
-         JNZ   L4D69H
-L4D75H:  
-        LODSW                   ;Load AX with wrd at DS:SI ++.
-         AND   AX,7F7FH
-         MOV   BP,OFFSET FONT_1
-L4D7CH:  
-        XCHG  SI,BP
-         CALL  L62B3H
-         MOV   SI,BP
-         INC   DI
-         LOOP  L4D0AH            ;Dec CX, loop if CX<>0.
-         JMP   L4EB0H
-
-L4D8BH:  
-        MOV   BP,OFFSET FONT_2
-         INC   SI
-         INC   SI
-         CALL TRANSLATE_ALREADY_LOADED
-        MOV   BL,AL
-         CMP   BYTE PTR CS:[BX]+L152FH,END_OF_STRING
-         JNZ   L4D7CH
-         MOV   DL,CL
-         PUSH  AX
-         SHL   BX,1
-         MOV   BX,WORD PTR CS:[FONT_OFFSETS+BX]
-         ADD   BX,BP
-         MOV   BP,OFFSET GLYPH_COMPOSE
-         MOV   CX,CELL_HEIGHT
-L4DBEH:  
-         CALL  COPY_GLYPH19
-         MOV   BP,OFFSET GLYPH_COMPOSE
-         DEC   DL
-         JZ L4EA7H
-
-L4DD5H:  
-        CALL LOAD_AND_TRANSLATE
-        MOV   BL,AL
-         MOV   AH,BYTE PTR CS:[BX]+L152FH
-         SHL   BX,1
-         MOV   BX,WORD PTR CS:[FONT_OFFSETS+BX]
-         ADD   BX,OFFSET FONT_2
-         MOV   CX,CELL_HEIGHT
-         CMP   AH,7
-         JNZ   L4E47H
-L4E03H:  
-         CALL  OR_GLYPH_ROWS
-         MOV   BP,OFFSET GLYPH_COMPOSE
-         INC   SI
-         INC   SI
-         INC   DH
-         DEC   DL
-         JZ L4EA7H
-
-L4E1EH:
-        CALL LOAD_AND_TRANSLATE
-        MOV   BL,AL
-         MOV   AH,BYTE PTR CS:[BX]+L152FH
-         SHL   BX,1
-         MOV   BX,WORD PTR CS:[FONT_OFFSETS+BX]
-         ADD   BX,OFFSET FONT_2
-         MOV   CX,CELL_HEIGHT
-L4E47H:
-        CMP   AH,8
-         JNZ   L4E8DH
-L4E4CH:
-         CALL  OR_GLYPH_ROWS
-         MOV   BP,OFFSET GLYPH_COMPOSE
-         INC   SI
-         INC   SI
-         INC   DH
-         DEC   DL
-         JZ    L4EA7H
-        CALL LOAD_AND_TRANSLATE
-        MOV   BL,AL
-         MOV   AH,BYTE PTR CS:[BX]+L152FH
-         SHL   BX,1
-         MOV   BX,WORD PTR CS:[FONT_OFFSETS+BX]
-         ADD   BX,OFFSET FONT_2+TONE_RAISE
-         MOV   CX,CELL_HEIGHT-TONE_RAISE
-L4E8DH:  
-        CMP   AH,HT
-         JNZ   L4EA7H
-L4E92H:  
-         CALL  OR_GLYPH_ROWS
-         MOV   BP,OFFSET GLYPH_COMPOSE
-         INC   SI
-L4EA3H:  
-        INC   SI
-         INC   DH
-         DEC   DX
-
-L4EA7H:  
-        POP   AX
-         MOV   AL,CH
-         MOV   CL,DL
-         INC   CX
-         JMP   L4D7CH
-
-L4EB0H:  
-        MOV   AH,BYTE PTR [SI]-1
-         OR    DH,DH
-         JZ    L4EC3H
-L4EB7H:  
-        PUSH  AX
-         CALL  L6289H
-         POP   AX
-         INC   DI
-         DEC   DH
-         JNZ   L4EB7H
+         CALL SELECT_ROW_WRITERS
+         MOV BYTE PTR CS:[ROW_RENDER_ABORT],0
+         CALL RENDER_ROW_BODY
+         CMP BYTE PTR CS:[ROW_RENDER_ABORT],0
+         JE L4EC3H
+         _POP SI,BX
+         MOV DS,CS:[VID_SEG]
+         MOV BYTE PTR CS:[VGA_ROW_ACTIVE],0
+         MOV BYTE PTR CS:[ROW_PLAN_MODE],0
+         JMP L4EE5H
 L4EC3H:  
+         CALL ROW_GROUP_END
         _POP  SI,BX
          MOV   AX,CS
          MOV   ES,AX
-         MOV   CL,50H
          MOV   DI,OFFSET VID_SAVE
          ADD   DI,SI
-         REP MOVSW              ;Move wrd, DS:SI to ES:DI ++.
+IFDEF CPU_386
+         MOV CX,40
+         REP MOVSD              ;Commit exactly 160 bytes to VID_SAVE.
+ELSE
+         MOV CL,50H
+         REP MOVSW
+ENDIF
+         CALL VALIDATE_RENDERED_ROW
+         MOV BYTE PTR CS:[ROW_PLAN_MODE],0
+         MOV DS,CS:[VID_SEG]
+         MOV BYTE PTR CS:[VGA_ROW_ACTIVE],0
+         MOV BYTE PTR CS:[VGA_LATCH_VALID],0
 L4ED2H:  
         INC   BX
          CMP   BX,19H
@@ -3646,10 +4233,13 @@ ENDIF
          JMP   L4CFAH
 
 L4EE5H:  
+         CALL ROW_GROUP_END
         CALL  L4FDDH
          CALL  DRAW_CURSOR_VGA
 
 UPD_25_EXIT:  
+         MOV BYTE PTR CS:[ROW_UPDATE_ACTIVE],0
+         CALL ROW_GROUP_END
          CALL VGA_BATCH_FLUSH
          MOV BYTE PTR CS:[VGA_BATCH_ACTIVE],0
         RET
@@ -3660,6 +4250,8 @@ UPDATE_SCREEN_THAI_8 PROC NEAR
          CLD                     ;Set forward direction flag.
          MOV   DS,CS:[VID_SEG]
          CALL  L4C01H
+         CALL VGA_BATCH_FLUSH
+         MOV BYTE PTR CS:[VGA_BATCH_ACTIVE],1
          MOV   AX,CS
          MOV   ES,AX
          MOV   DI,OFFSET VID_SAVE
@@ -3677,7 +4269,7 @@ L4F32H:
          CALL  DRAW_CURSOR_VGA
          MOV   DI,BP
          CALL  DRAW_CURSOR_VGA
-         RET                ;SAVE 2 BYTES
+         JMP L4FCFH
 
 L4F43H:  
         MOV   BP,CX
@@ -3738,8 +4330,10 @@ L4FC7H:
         CALL  L4FDDH
          CALL  DRAW_CURSOR_VGA
 
-L4FCFH:  
-        RET
+L4FCFH:
+         CALL VGA_BATCH_FLUSH
+         MOV BYTE PTR CS:[VGA_BATCH_ACTIVE],0
+         RET
 UPDATE_SCREEN_THAI_8 ENDP
 
 ;------------------------------------------------------------
@@ -3923,6 +4517,7 @@ SELECT_TEXT_PAGE0 ENDP
 P_002F   PROC  NEAR
 ;------------------------------------------------------------
 SCRL_UP1:
+         CALL INVALIDATE_ROW_IMAGES
         CLI                     ;Disable interrupts.
          CLD                     ;Set forward direction flag.
           _PUSH BX,CX,DX,DI,SI,DS,ES
@@ -5247,6 +5842,7 @@ INIT_VGA ENDP
 P_0035   PROC  NEAR
 ;------------------------------------------------------------
 VGA_SET_VIDEO_MODE:  
+         CALL INVALIDATE_ROW_IMAGES
          MOV   AH,AL
          AND   AH,7FH
          CMP   AH,2
@@ -5390,6 +5986,107 @@ VGA_CURSOR_HIDDEN:
          POPF
          RET
 
+; Draw BX source space cells, grouping only by background colour.
+; Leaves SI/DI advanced and BX=0, preserving the remaining text state.
+BLANK_TEXT_RUN PROC NEAR
+         CMP BYTE PTR CS:[ROW_PLAN_MODE],0
+         JNE BTR_PLANNED
+; Avoid grouping overhead for single cells or immediately alternating backgrounds.
+         CMP BX,2
+         JB BTR_LEGACY
+         PUSH AX
+         MOV AH,[SI+1]
+         XOR AH,[SI+3]
+         TEST AH,0F0H
+         POP AX
+         JNZ BTR_LEGACY
+         _PUSH AX,CX,DX,BP
+BTR_NEXT:
+         MOV BP,SI
+         MOV AH,[SI+1]
+         MOV DL,AH
+         AND DL,0F0H
+         MOV CX,1
+BTR_SCAN:
+         CMP CX,BX
+         JAE BTR_DRAW
+         ADD BP,2
+         MOV AL,DS:[BP+1]
+         AND AL,0F0H
+         CMP AL,DL
+         JNE BTR_DRAW
+         INC CX
+         JMP BTR_SCAN
+BTR_DRAW:
+         CMP CX,1
+         JNE BTR_GROUP
+; Single cells retain the cheaper unrolled per-cell writer.
+         CALL L6289H
+         INC DI
+         JMP SHORT BTR_ADVANCE
+BTR_GROUP:
+         CALL VGA_BLANK_RUN
+BTR_ADVANCE:
+         ADD SI,CX
+         ADD SI,CX
+         SUB BX,CX
+         JNZ BTR_NEXT
+         _POP BP,DX,CX,AX
+         RET
+BTR_LEGACY:
+         LODSW
+         CALL L6289H
+         INC DI
+         DEC BX
+         JNZ BTR_LEGACY
+         RET
+BTR_PLANNED:
+         LODSW
+         CALL WORD PTR CS:[ROW_BLANK_WRITER]
+         INC DI
+         DEC BX
+         JNZ BTR_PLANNED
+         RET
+BLANK_TEXT_RUN ENDP
+
+; AH=attribute, CX=1..80 cells, ES:DI=first pixel byte.
+; Advances DI by CX. Every scanline uses byte stores for planar VGA.
+VGA_BLANK_RUN PROC NEAR
+         PUSHF
+         CLI
+         CALL VGA_BATCH_FLUSH
+         _PUSH AX,BX,CX,DX,SI
+         MOV BX,CX
+         MOV SI,DI
+IFDEF CPU_386
+         SHR AX,4
+ELSE
+         SHR AX,1
+         SHR AX,1
+         SHR AX,1
+         SHR AX,1
+ENDIF
+         XOR AL,AL
+         MOV DX,GRAPHICS_ADDRESS_REG
+         OUT DX,AX
+         MOV AX,0F01H
+         OUT DX,AX
+         XOR AL,AL
+         REPT CELL_HEIGHT
+         MOV CX,BX
+         REP STOSB
+         ADD DI,80
+         SUB DI,BX
+         ENDM
+         MOV AX,1
+         OUT DX,AX
+         MOV DI,SI
+         ADD DI,BX
+         _POP SI,DX,CX,BX,AX
+         POPF
+         RET
+VGA_BLANK_RUN ENDP
+
 L6289H:  
          PUSHF
          CLI
@@ -5419,8 +6116,13 @@ ENDIF
          POPF
          RET
 
-L62B3H:
-; Do not allow a popup to change GC/latches halfway through a glyph.
+STAGED_GLYPH:
+         CMP BYTE PTR CS:[ROW_GROUP_HELD],0
+         JE SG_NEW_GROUP
+         DEC BYTE PTR CS:[ROW_GROUP_LEFT]
+         JZ SG_RESTART
+; Within a held group, no interrupt or B800/blank/cursor operation can have
+; changed latches: those paths always release the group first.
          PUSHF
          CLI
          _PUSH CX,DX
@@ -5431,6 +6133,64 @@ L62B3H:
          MOV   BX,WORD PTR CS:[FONT_OFFSETS+BX]
          ADD   SI,BX
          MOV   BX,CX
+         MOV AH,CS:[VGA_LAST_ATTR]
+         XOR AH,CH
+         TEST AH,0F0H
+         JNZ STAGED_GLYPH_RESEED
+         OR AH,AH
+         JZ VGA_GLYPH_PIXELS
+         MOV AX,CX
+         AND AH,0FH
+         XOR AL,AL
+         MOV DX,GRAPHICS_ADDRESS_REG
+         OUT DX,AX
+         MOV CS:[VGA_LAST_ATTR],CH
+         JMP VGA_GLYPH_PIXELS
+SG_RESTART:
+         CALL ROW_GROUP_END
+SG_NEW_GROUP:
+         PUSHF
+         CLI
+         POP WORD PTR CS:[ROW_GROUP_FLAGS]
+; A popup may have cancelled staging immediately before CLI.
+         CMP BYTE PTR CS:[VGA_ROW_ACTIVE],0
+         JE SG_CANCEL
+         MOV BYTE PTR CS:[ROW_GROUP_HELD],1
+         MOV BYTE PTR CS:[ROW_GROUP_LEFT],8
+         PUSHF
+         CLI
+         _PUSH CX,DX
+         MOV   CX,AX             ;Keep character/attribute for foreground
+         XOR   AH,AH
+         MOV   BX,AX
+         SHL   BX,1
+         MOV   BX,WORD PTR CS:[FONT_OFFSETS+BX]
+         ADD   SI,BX
+         MOV   BX,CX
+         JMP STAGED_GLYPH_RESEED
+SG_CANCEL:
+         PUSH WORD PTR CS:[ROW_GROUP_FLAGS]
+         POPF
+         JMP L62B3H
+STAGED_GLYPH_RESEED:
+         MOV BYTE PTR CS:[VGA_LATCH_VALID],1
+         MOV CS:[VGA_LAST_ATTR],CH
+         JMP VGA_GLYPH_RESEED
+
+L62B3H:
+; Do not allow a popup to change GC/latches halfway through a glyph.
+         MOV BYTE PTR CS:[VGA_LATCH_VALID],0
+         PUSHF
+         CLI
+         _PUSH CX,DX
+         MOV   CX,AX             ;Keep character/attribute for foreground
+         XOR   AH,AH
+         MOV   BX,AX
+         SHL   BX,1
+         MOV   BX,WORD PTR CS:[FONT_OFFSETS+BX]
+         ADD   SI,BX
+         MOV   BX,CX
+VGA_GLYPH_RESEED:
          CMP BYTE PTR CS:[VGA_BATCH_VALID],0
          JE VGA_GLYPH_SETUP
 ; A B800 text read changes latches: reseed every glyph, retain only GC state.

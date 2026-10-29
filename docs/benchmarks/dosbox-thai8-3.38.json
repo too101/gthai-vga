@@ -1,0 +1,133 @@
+{
+  "baseline_version": "3.37",
+  "updated_version": "3.38",
+  "baseline_note": "Uncommitted 3.37 source snapshot; current include changes version text only.",
+  "before": {
+    "source_sha256": "5d438d37e168b63e5262e56437e1c540ba0a3a6d4a732fa78741cbefa4321197",
+    "include_sha256": "3c9444e982ac3e3f27eac02cd80e1378d1e190c88c56e985fa6fe1afd182ebac",
+    "environment": {
+      "core": "normal",
+      "cpu": "386",
+      "cycles": 10000,
+      "repetitions": 2,
+      "scale": 1,
+      "profile": "thai8",
+      "timer": "BIOS tick",
+      "tick_seconds": 0.05492540115422458
+    },
+    "cases": {
+      "row_ascii_same": 200,
+      "row_thai": 200
+    },
+    "samples": {
+      "GTHAI": [
+        {
+          "case": "row_ascii_same",
+          "repeat": 0,
+          "ticks": 121
+        },
+        {
+          "case": "row_thai",
+          "repeat": 0,
+          "ticks": 124
+        },
+        {
+          "case": "row_ascii_same",
+          "repeat": 1,
+          "ticks": 121
+        },
+        {
+          "case": "row_thai",
+          "repeat": 1,
+          "ticks": 124
+        }
+      ],
+      "GTHAI386": [
+        {
+          "case": "row_ascii_same",
+          "repeat": 0,
+          "ticks": 119
+        },
+        {
+          "case": "row_thai",
+          "repeat": 0,
+          "ticks": 122
+        },
+        {
+          "case": "row_ascii_same",
+          "repeat": 1,
+          "ticks": 119
+        },
+        {
+          "case": "row_thai",
+          "repeat": 1,
+          "ticks": 122
+        }
+      ]
+    }
+  },
+  "after": {
+    "source_sha256": "11fbd94f3f97ad9a83db906f490a9e13a0506cc0a81250459254093eac6f3dee",
+    "include_sha256": "3c9444e982ac3e3f27eac02cd80e1378d1e190c88c56e985fa6fe1afd182ebac",
+    "environment": {
+      "core": "normal",
+      "cpu": "386",
+      "cycles": 10000,
+      "repetitions": 2,
+      "scale": 1,
+      "profile": "thai8",
+      "timer": "BIOS tick",
+      "tick_seconds": 0.05492540115422458
+    },
+    "cases": {
+      "row_ascii_same": 200,
+      "row_thai": 200
+    },
+    "samples": {
+      "GTHAI": [
+        {
+          "case": "row_ascii_same",
+          "repeat": 0,
+          "ticks": 109
+        },
+        {
+          "case": "row_thai",
+          "repeat": 0,
+          "ticks": 112
+        },
+        {
+          "case": "row_ascii_same",
+          "repeat": 1,
+          "ticks": 109
+        },
+        {
+          "case": "row_thai",
+          "repeat": 1,
+          "ticks": 112
+        }
+      ],
+      "GTHAI386": [
+        {
+          "case": "row_ascii_same",
+          "repeat": 0,
+          "ticks": 107
+        },
+        {
+          "case": "row_thai",
+          "repeat": 0,
+          "ticks": 110
+        },
+        {
+          "case": "row_ascii_same",
+          "repeat": 1,
+          "ticks": 107
+        },
+        {
+          "case": "row_thai",
+          "repeat": 1,
+          "ticks": 110
+        }
+      ]
+    }
+  }
+}

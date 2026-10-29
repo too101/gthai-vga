@@ -14,7 +14,7 @@ parser.add_argument('--scale',type=int,default=1,help='Multiply loop counts for 
 parser.add_argument('--source',type=Path,help='Alternate source snapshot for before/after comparisons')
 parser.add_argument('--work-dir',type=Path,default=Path('work/benchmark'))
 parser.add_argument('--target',choices=('both','GTHAI','GTHAI386'),default='both')
-parser.add_argument('--profile',choices=('glyph','screen'),default='glyph')
+parser.add_argument('--profile',choices=('glyph','screen','blanks','rows','partial','frames','thai8'),default='glyph')
 args=parser.parse_args()
 if args.cycles<=0 or not 1<=args.repetitions<=20 or not 1<=args.scale<=20: parser.error('Invalid cycles, repetitions, or scale')
 root=Path(__file__).resolve().parents[1]
@@ -66,11 +66,15 @@ loops=[
  """         MOV SI,OFFSET BENCH_THAI
          CALL DO_MSG
 """]
-if args.profile=='screen':
+if args.profile in ('screen','blanks','rows','partial','frames','thai8'):
     cases=[('screen_idle',5000*args.scale),('screen_redraw',500*args.scale)]
     setup="""
          MOV WORD PTR [VID_SEG],0B800H
          MOV WORD PTR [CRTBASE],03D4H
+; Match GTHAI's VGA memory mapping, not the BIOS mode-12h A000-only default.
+         MOV DX,03CEH
+         MOV AX,0106H
+         OUT DX,AX
          MOV BYTE PTR [CURRENT_MODE],0
          MOV BX,OFFSET L0506H
          MOV AX,VGA_ORIGIN
@@ -123,9 +127,83 @@ BENCH_ROWS:
          POP ES
 """
     loops=[call,dirty+call]
+if args.profile=='blanks':
+    cases=[(name,200*args.scale) for name in ('blank_long','blank_mixed','blank_alternating','ascii_control')]
+    loops=[dirty+call]*len(cases)
+if args.profile=='rows':
+    cases=[(name,200*args.scale) for name in ('row_ascii_same','row_ascii_foreground','row_ascii_background','row_thai')]
+    loops=[dirty+call]*len(cases)
+if args.profile=='thai8':
+    cases=[(name,200*args.scale) for name in ('row_ascii_same','row_thai')]
+    loops=[dirty+call.replace('UPDATE_SCREEN_THAI_25','UPDATE_SCREEN_THAI_8')]*len(cases)
+    body=body.replace('MOV BYTE PTR [CURRENT_MODE],0','MOV BYTE PTR [DISPMODE],1\n         MOV BYTE PTR [CURRENT_MODE],0')
+if args.profile=='partial':
+    cases=[(name,2000*args.scale) for name in ('partial_ascii','partial_colour','partial_thai','partial_dense','partial_blank')]
+    loops=[]
+    for name,_ in cases:
+        offsets=([12*160+col*2 for col in range(32,48)] if name=='partial_dense' else [12*160+(41 if name=='partial_thai' else 40)*2])
+        mask={'partial_ascii':3,'partial_colour':0x100,'partial_thai':12,'partial_dense':3,'partial_blank':0x61}[name]
+        mutate="         PUSH ES\n         MOV AX,0B800H\n         MOV ES,AX\n"
+        mutate+=''.join(f"         XOR WORD PTR ES:[{offset}],{mask}\n" for offset in offsets)
+        loops.append(mutate+"         POP ES\n"+call)
+if args.profile=='frames':
+    cases=[(name,200000*args.scale) for name in ('frame_shade','frame_vertical')]
+    loops=['''         PUSH DS
+         MOV AX,0B800H
+         MOV DS,AX
+         MOV SI,2000
+         CALL L4B7FH
+         POP DS
+''']*len(cases)
 for index,(name,iterations) in enumerate(cases):
     inner=min(50000,iterations)
     assert iterations%inner==0
+    if args.profile in ('blanks','rows','partial','frames','thai8'):
+        body+="""         MOV AX,0B800H
+         MOV ES,AX
+         XOR DI,DI
+         MOV CX,2000
+"""
+        if name in ('frame_shade','frame_vertical'):
+            body+=f"         MOV AX,{('07B0H' if name=='frame_shade' else '07B3H')}\n         REP STOSW\n"
+        elif name in ('blank_long','ascii_control','row_ascii_same','partial_ascii','partial_colour','partial_dense','partial_blank'):
+            body+=f"         MOV AX,{('0741H' if name in ('ascii_control','row_ascii_same','partial_ascii','partial_colour','partial_dense') else '0720H')}\n         REP STOSW\n"
+        elif name=='row_ascii_foreground':
+            body+=f"         MOV AX,0141H\nBENCH_FILL_{index}:\n         STOSW\n         INC AH\n         AND AH,0FH\n         LOOP BENCH_FILL_{index}\n"
+        elif name in ('row_thai','partial_thai'):
+            body+=f"""         XOR BX,BX
+BENCH_FILL_{index}:
+         MOV BP,BX
+         AND BP,3
+         MOV AL,CS:[BENCH_ROW_THAI+BP]
+         MOV AH,07H
+         STOSW
+         INC BX
+         LOOP BENCH_FILL_{index}
+"""
+        elif name in ('blank_alternating','row_ascii_background'):
+            body+=f"         MOV AX,{('0741H' if name=='row_ascii_background' else '0720H')}\nBENCH_FILL_{index}:\n         STOSW\n         XOR AH,10H\n         LOOP BENCH_FILL_{index}\n"
+        else:
+            body+=f"""         XOR BX,BX
+BENCH_FILL_{index}:
+         MOV AX,0720H
+         TEST BX,15
+         JNZ BENCH_FILL_STORE_{index}
+         MOV AL,41H
+BENCH_FILL_STORE_{index}:
+         STOSW
+         INC BX
+         LOOP BENCH_FILL_{index}
+"""
+        expected={'frame_shade':'07B0H','frame_vertical':'07B3H','blank_mixed':'0741H','ascii_control':'0741H','row_ascii_same':'0741H','row_ascii_foreground':'0141H','row_ascii_background':'0741H','row_thai':'07A1H','partial_thai':'07A1H','partial_ascii':'0741H','partial_colour':'0741H','partial_dense':'0741H'}.get(name,'0720H')
+        body+=f"""         CMP WORD PTR ES:[0],{expected}
+         JE BENCH_FILL_OK_{index}
+         JMP BENCH_ERROR
+BENCH_FILL_OK_{index}:
+         MOV AX,0A000H
+         MOV ES,AX
+"""
+    if args.profile=='partial': body+=dirty+call
     body+=f"         MOV WORD PTR [BENCH_CASE],{index}\n"
     body+="""         CALL BENCH_SYNC
          MOV [BENCH_BEGIN],AX
@@ -179,6 +257,7 @@ BENCH_BEGIN DW 0
 BENCH_CASE DW 0
 BENCH_REPEAT DW 0
 BENCH_ELAPSED DW 0
+BENCH_ROW_THAI DB 0A1H,0D4H,0E8H,41H
 BENCH_THAI DB (0A1H XOR 5),(0D4H XOR 5),(0E8H XOR 5),5
 """
 variant=source.replace('JMP   INIT','JMP   BENCH_START',1)

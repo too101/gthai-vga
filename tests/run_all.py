@@ -2,7 +2,7 @@
 import os, subprocess, sys
 from pathlib import Path
 root=Path(__file__).resolve().parent.parent
-checks=('verify_vga.py','verify_mode3.py','verify_packed19.py','verify_mode_switch.py','verify_vertical_shade.py','verify_colour_hint.py','verify_screen_batch.py')
+checks=('verify_vga.py','verify_mode3.py','verify_packed19.py','verify_mode_switch.py','verify_vertical_shade.py','verify_colour_hint.py','verify_screen_batch.py','verify_blank_runs.py','verify_row_stage.py','verify_partial_rows.py','verify_thai8_batch.py')
 for target in ('GTHAI','GTHAI386'):
     print(f'=== {target} ===',flush=True)
     env=dict(os.environ,GTHAI_TARGET=target)

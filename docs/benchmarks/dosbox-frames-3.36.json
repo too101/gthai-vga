@@ -1,0 +1,133 @@
+{
+  "baseline_version": "3.35",
+  "updated_version": "3.36",
+  "baseline_note": "Uncommitted 3.35 snapshot; current include changes version strings only.",
+  "before": {
+    "source_sha256": "bdcf8439e94e95f8ae4db134a3521abbac929304d49a860d9dca5a9176ed9eb6",
+    "include_sha256": "ef37433ea9cf657638f008d53662ebaf26ecff113c8d73d955c0b5c22d011745",
+    "environment": {
+      "core": "normal",
+      "cpu": "386",
+      "cycles": 10000,
+      "repetitions": 2,
+      "scale": 1,
+      "profile": "frames",
+      "timer": "BIOS tick",
+      "tick_seconds": 0.05492540115422458
+    },
+    "cases": {
+      "frame_shade": 200000,
+      "frame_vertical": 200000
+    },
+    "samples": {
+      "GTHAI": [
+        {
+          "case": "frame_shade",
+          "repeat": 0,
+          "ticks": 16
+        },
+        {
+          "case": "frame_vertical",
+          "repeat": 0,
+          "ticks": 20
+        },
+        {
+          "case": "frame_shade",
+          "repeat": 1,
+          "ticks": 16
+        },
+        {
+          "case": "frame_vertical",
+          "repeat": 1,
+          "ticks": 20
+        }
+      ],
+      "GTHAI386": [
+        {
+          "case": "frame_shade",
+          "repeat": 0,
+          "ticks": 16
+        },
+        {
+          "case": "frame_vertical",
+          "repeat": 0,
+          "ticks": 20
+        },
+        {
+          "case": "frame_shade",
+          "repeat": 1,
+          "ticks": 16
+        },
+        {
+          "case": "frame_vertical",
+          "repeat": 1,
+          "ticks": 20
+        }
+      ]
+    }
+  },
+  "after": {
+    "source_sha256": "0aa587d84edd01140e10e68cada4105521e8fc2fc5e9b874de2d85aaf74232ee",
+    "include_sha256": "ef37433ea9cf657638f008d53662ebaf26ecff113c8d73d955c0b5c22d011745",
+    "environment": {
+      "core": "normal",
+      "cpu": "386",
+      "cycles": 10000,
+      "repetitions": 2,
+      "scale": 1,
+      "profile": "frames",
+      "timer": "BIOS tick",
+      "tick_seconds": 0.05492540115422458
+    },
+    "cases": {
+      "frame_shade": 200000,
+      "frame_vertical": 200000
+    },
+    "samples": {
+      "GTHAI": [
+        {
+          "case": "frame_shade",
+          "repeat": 0,
+          "ticks": 17
+        },
+        {
+          "case": "frame_vertical",
+          "repeat": 0,
+          "ticks": 21
+        },
+        {
+          "case": "frame_shade",
+          "repeat": 1,
+          "ticks": 17
+        },
+        {
+          "case": "frame_vertical",
+          "repeat": 1,
+          "ticks": 21
+        }
+      ],
+      "GTHAI386": [
+        {
+          "case": "frame_shade",
+          "repeat": 0,
+          "ticks": 16
+        },
+        {
+          "case": "frame_vertical",
+          "repeat": 0,
+          "ticks": 20
+        },
+        {
+          "case": "frame_shade",
+          "repeat": 1,
+          "ticks": 16
+        },
+        {
+          "case": "frame_vertical",
+          "repeat": 1,
+          "ticks": 20
+        }
+      ]
+    }
+  }
+}

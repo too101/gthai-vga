@@ -40,7 +40,12 @@ python tools/benchmark_dosbox.py --assembler C:\tools\jwasm.exe --dosbox C:\DOSB
 
 On the same emulated 386 in DOSBox-X, GTHAI386 reduced elapsed time by 20.3% for glyph copying, 23.1% for Thai glyph composition, 2.5% for ASCII drawing, and 9.2% for composed Thai drawing. Both repetitions returned identical tick counts. These tests call individual routines and repeatedly draw to one screen cell; they do not measure whole-application performance or physical VGA hardware.
 
-## รุ่น 3.31 — ใช้สถานะ VGA ร่วมและตรวจจอด้วย CMPSD
+## รุ่น 3.31 — ผล screen benchmark เดิม (ถอนการอ้างอิง)
+
+**ตรวจพบข้อผิดพลาดในตัววัดเมื่อ 29 ตุลาคม 2026:** screen profile ตั้ง BIOS mode 12h แต่ไม่ได้เปิด Graphics Controller register 6 เป็น 01h แบบไดรเวอร์ ทำให้ B800 ไม่อยู่ใน memory mapping ที่ต้องการ จึงไม่ยืนยันว่าข้อมูลที่อ่านมาวาดเป็นอักษร A ตามที่อธิบายไว้ ตัวเลขและไฟล์ดิบด้านล่างเก็บไว้เพื่อประวัติ **ไม่ใช้ยืนยันเปอร์เซ็นต์การเร่งของงานหน้าจอที่ระบุ** รุ่น 3.33 ใช้ตัววัดที่แก้ mapping และตรวจข้อมูลอ่านกลับแล้ว
+
+ข้อผิดพลาดนี้ไม่เกี่ยวกับ glyph profile รุ่น 3.30 ที่เรียกรูทีนกับฟอนต์และ A000 โดยตรง
+
 
 ทดสอบ 22 ตุลาคม 2026 ใน DOSBox-X ด้วย CPU จำลอง 386, core normal, fixed 10000 cycles เหมือนกันทุกตัว เทียบ source ก่อนแก้จาก commit `731512f` กับรุ่น 3.31 ทดสอบ 2 รอบ ผลดิบอยู่ที่ [dosbox-screen-3.31.json](benchmarks/dosbox-screen-3.31.json)
 
@@ -65,6 +70,177 @@ python tools/benchmark_dosbox.py --assembler C:\tools\jwasm.exe --dosbox C:\DOSB
 
 ใช้ `--target GTHAI` หรือ `--target GTHAI386` เพื่อเลือกตัวเดียว และ `--source` เพื่อระบุไฟล์ ASM ก่อนแก้ สคริปต์ยังอ่าน GTHAI.INC และฟอนต์จากโครงการปัจจุบัน จึงต้องใช้ไฟล์ประกอบที่ตรงกับรุ่นที่ต้องการวัด สำหรับผลชุดนี้ include เปลี่ยนเฉพาะหมายเลขรุ่นจาก baseline โดยคำสั่งช่วยและฟอนต์ยังเหมือนเดิม
 
-### English summary for 3.31
+### English correction for 3.31
 
-Both builds now share VGA register state during consecutive glyph rendering in Thai 25-line screen updates. On the same emulated 386, full-screen ASCII redraw time fell by 6.1% for GTHAI and 6.3% for GTHAI386 versus their respective previous builds. The 386 build also uses CMPSD and reduced unchanged-screen checking time by 48.9% using median BIOS ticks. These results exclude frame detection and are not physical-hardware measurements.
+The original screen-profile percentages are withdrawn: the harness did not enable the driver's B800 VGA memory mapping, so it did not verify the stated ASCII workload. Raw historical data remains above for provenance. Use the corrected 3.33 measurements below. The separate 3.30 glyph profile is unaffected.
+
+## รุ่น 3.33 — ช่องว่างเป็นชุด เทียบ baseline 3.32
+
+ทดสอบ 29 ตุลาคม 2026 ใน DOSBox-X 2026.10.01, CPU จำลอง 386, core normal, fixed 10000 cycles ทุกกรณี ใช้ตัววัดที่แก้ GC06=01h แล้ว และอ่าน B800 กลับเพื่อตรวจว่าเตรียมข้อมูลได้จริง
+
+แต่ละกรณีวาดใหม่ทั้งจอ 80×25 จำนวน 200 ครั้งต่อรอบ ทดสอบ 2 รอบได้ tick เท่ากันทั้งสองรอบทุกกรณี รวมเวลาล้าง VID_SAVE ก่อนวาดแต่ละครั้ง ปิดการตรวจกรอบและซ่อน cursor เช่นเดียวกันทั้งก่อนและหลัง
+
+| งาน | GTHAI ก่อน → หลัง (เวลาลดลง) | GTHAI386 ก่อน → หลัง (เวลาลดลง) |
+|---|---|---|
+| blank_long | 66 → 30 (54.5%) | 64 → 30 (53.1%) |
+| blank_mixed | 69 → 40 (42.0%) | 67 → 40 (40.3%) |
+| blank_alternating | 66 → 66 (0.0%) | 64 → 64 (0.0%) |
+| ascii_control | 97 → 97 (0.0%) | 94 → 94 (0.0%) |
+
+- blank_long: ช่องว่างทั้งจอ สีพื้นเดียวกัน
+- blank_mixed: อักษร A หนึ่งตัว ตามด้วยช่องว่าง 15 ช่อง สีเดียวกัน
+- blank_alternating: ช่องว่างทั้งจอ สลับสีพื้นทุกช่อง ใช้ทางเดิมโดยอัตโนมัติ
+- ascii_control: อักษร A เต็มจอ เป็นกรณีควบคุมที่ไม่ใช้เส้นทางช่องว่าง
+
+ตัวเลขเป็น BIOS tick และเปอร์เซ็นต์เวลาที่ลดลง ไม่ใช่ FPS และไม่ใช่ผลบน CPU/การ์ด VGA จริง ข้อมูลดิบและ hash ของ source อยู่ใน [dosbox-blanks-3.33.json](benchmarks/dosbox-blanks-3.33.json)
+
+### เรียกซ้ำ
+
+```powershell
+python tools/benchmark_dosbox.py --assembler C:\tools\jwasm.exe --dosbox C:\DOSBox-X\dosbox-x.exe --profile blanks --repetitions 2 --work-dir work/benchmark-blanks
+```
+
+เทียบกับ ASM รุ่นก่อนโดยใช้ --source และแยก --work-dir; baseline ที่ใช้ในครั้งนี้เป็น GTHAI.ASM จาก commit ก่อนแก้ โดยยังใช้ include ปัจจุบันซึ่งเปลี่ยนเฉพาะหมายเลขรุ่นในส่วนที่เกี่ยวข้อง คำสั่งของ baseline ไม่ได้รับการปรับ batch ช่องว่าง
+
+### ข้อแลกเปลี่ยน
+
+ไม่เปลี่ยนกฎนับช่องว่างสำหรับชดเชยสระ การแยกสีทำในขั้นวาดเท่านั้น ใช้การเขียนแบบไบต์ทั้ง 19 แถวและรักษาการวนข้าม 64 KB; foreground ต่างกันไม่ต้องแยกชุด ถ้าสองช่องแรกมีสีพื้นต่างกันจะใช้ลูปเดิมทั้งช่วง เป็นการเลือกแบบอนุรักษ์นิยม จึงอาจพลาดประโยชน์ของช่วงสีเดียวกันที่ตามมาภายหลัง
+
+รักษา PUSHF/CLI/POPF แต่ขอบเขตปิด interrupt ของชุดยาวอาจครอบ 80×19 byte stores แทนหนึ่งตัวอักษร ยังไม่ได้วัด interrupt latency บนเครื่องจริง
+
+### English summary for 3.33
+
+With the corrected B800 mapping and verified workload data, long uniform blank-screen redraws took 54.5% less time in GTHAI and 53.1% less in GTHAI386 versus 3.32. The A-plus-spaces workload improved by 42.0% and 40.3%, respectively. Alternating backgrounds and ASCII-only controls had unchanged BIOS tick counts. Results are emulator measurements, not hardware timings.
+
+## รุ่น 3.34 — พักแถวใน RAM เทียบ baseline 3.33
+
+ทดสอบ 29 ตุลาคม 2026, DOSBox-X/core normal/CPU 386/fixed 10000 cycles ใช้ B800 mapping และตรวจ readback เช่นเดียวกับ 3.33 วาดใหม่ 200 ครั้งต่อกรณี ทดสอบ 2 รอบได้ค่า tick ตรงกันทุกกรณี ไม่รวมการตรวจกรอบและซ่อน cursor
+
+| งาน | GTHAI ก่อน → หลัง (tick / เวลา) | GTHAI386 ก่อน → หลัง (tick / เวลา) |
+|---|---|---|
+| row_ascii_same | 97 → 80 (ลด 17.5%) | 94 → 80 (ลด 14.9%) |
+| row_ascii_foreground | 97 → 87 (ลด 10.3%) | 94 → 87 (ลด 7.4%) |
+| row_ascii_background | 97 → 98 (เพิ่ม 1.0%) | 94 → 96 (เพิ่ม 2.1%) |
+| row_thai | 103 → 98 (ลด 4.9%) | 98 → 93 (ลด 5.1%) |
+
+- row_ascii_same: A เต็มจอ สี 07h
+- row_ascii_foreground: A เต็มจอ สีอักษรวน 0–15 แต่สีพื้นเดิม
+- row_ascii_background: A เต็มจอ สีพื้นสลับทุกช่อง เลือก direct path
+- row_thai: วน ก + สระอิ + ไม้เอก + A สี 07h; ไม่ใช่ตัวแทนภาษาไทยทุกบริบท โดยเฉพาะรหัสที่ต้องกลับไปตรวจกรอบจริง
+
+ทดสอบ profile ช่องว่างเดิมเพื่อดูต้นทุนที่เพิ่มจาก 3.33:
+
+| งาน | GTHAI ก่อน → หลัง (tick / เวลา) | GTHAI386 ก่อน → หลัง (tick / เวลา) |
+|---|---|---|
+| blank_long | 30 → 30 (ลด 0.0%) | 30 → 30 (ลด 0.0%) |
+| blank_mixed | 40 → 41 (เพิ่ม 2.5%) | 40 → 41 (เพิ่ม 2.5%) |
+| blank_alternating | 66 → 67 (เพิ่ม 1.5%) | 64 → 65 (เพิ่ม 1.6%) |
+| ascii_control | 97 → 80 (ลด 17.5%) | 94 → 80 (ลด 14.9%) |
+
+ค่าที่เพิ่มเพียง 1–2 tick อยู่ใกล้ความละเอียด BIOS timer แต่ไม่ถือว่าพิสูจน์ว่าไม่มีต้นทุน ผลนี้แสดงข้อแลกเปลี่ยนของเงื่อนไขเลือกรูทีนและสถานะเพิ่ม ข้อมูลทั้งหมดเป็นผลในตัวจำลอง ไม่ใช่การ์ด VGA จริง
+
+### วิธีและขอบเขตการป้องกัน interrupt
+
+พักเพียงแถวที่เปลี่ยน ขนาด 160 ไบต์ พร้อมคำก่อน/หลังเป็น guard และคง offset SI เดิมด้วย segment alias กรณีสองช่องแรกเป็นช่องว่างหรือสีพื้นต่างกันใช้ทางตรง เงื่อนไขนี้อาจพลาดแถวที่มีข้อความหนาแน่นหลังช่องว่างนำหน้า แต่ลดต้นทุนในกรณีช่องว่างมาก
+
+การไม่มี B800 read ระหว่าง glyph ไม่รับประกันว่า latch จะรอดจาก ISR อื่น จึงใช้ critical section กลุ่มไม่เกิน 8 glyph เท่านั้น และล้าง latch cache ก่อนคืน IF ไม่ปิด interrupt ครอบทั้งแถว กรณีช่องว่างยังใช้ critical section ของ blank run ตาม 3.33
+
+classifiers ที่ต้องอ่านบริบทจริงจะจบ critical group และอ่าน B800 ตามเดิม; ไม่อ้างว่าเส้นทางภาษาไทย/กรอบทั้งหมดเลิกอ่าน B800 แล้ว การอ่านจอและตำแหน่ง cursor หลังจบแถวยังทำตามเดิม
+
+ในแบบจำลอง VGA จอ A สีเดียวเต็ม 80×25 ใช้ GC OUT 1,003 ครั้ง แทนประมาณ 8,003 ครั้งของ batch 3.33 (ลดประมาณ 87.5%) แต่จำนวน OUT ที่ลดลงไม่เท่ากับเปอร์เซ็นต์เวลาที่ลดลง เนื่องจากมีงานสำเนาและจัดการสถานะเพิ่ม
+
+```powershell
+python tools/benchmark_dosbox.py --assembler C:\tools\jwasm.exe --dosbox C:\DOSBox-X\dosbox-x.exe --profile rows --repetitions 2 --work-dir work/benchmark-rows
+```
+
+ผลดิบพร้อม hash อยู่ใน [dosbox-rows-3.34.json](benchmarks/dosbox-rows-3.34.json) baseline 3.33 เป็น snapshot จากการทำข้อ 1 ก่อนหน้าที่ยังไม่ได้ commit; ใช้ include ปัจจุบันซึ่งเปลี่ยนข้อความเลขรุ่น แต่ไม่เปลี่ยนคำสั่งของ baseline
+
+### English summary for 3.34
+
+Eligible changed rows are staged in RAM. Latch reuse is limited to interrupt-masked groups of at most eight glyphs; the cache is invalidated before interrupts are restored, including when frame context must be read from B800. Compared with 3.33, uniform ASCII redraw time fell by 17.5% in GTHAI and 14.9% in GTHAI386. The tested Thai composition pattern improved by about 5%. Some alternating-background or sparse-text cases took 1–2 extra BIOS ticks. These are emulator results with a conservative row-selection heuristic.
+
+## 3.35 — อัปเดตเฉพาะช่องที่ภาพเปลี่ยน
+
+เทียบกับ snapshot 3.34 บน DOSBox-X, normal core, CPU 386, fixed 10,000 cycles เหมือนกันทั้งสองรุ่น วัด 2,000 updates ต่อกรณี ทำซ้ำ 2 รอบ ได้ค่าแต่ละรอบเท่ากัน หน่วยเป็น BIOS tick (ประมาณ 54.925 ms); ค่าน้อยกว่าเร็วกว่า
+
+| กรณี | GTHAI 3.34 → 3.35 | GTHAI386 3.34 → 3.35 |
+|---|---:|---:|
+| เปลี่ยนอักษรอังกฤษหนึ่งช่อง | 41 → 32 | 37 → 28 |
+| เปลี่ยนสีตัวอักษรหนึ่งช่อง | 41 → 32 | 37 → 28 |
+| เปลี่ยนสระในข้อความไทยตัวอย่าง | 48 → 43 | 42 → 38 |
+| เปลี่ยน 16 ช่อง ต้องวาดเต็มแถว | 41 → 44 | 37 → 40 |
+| สลับช่องว่าง/อักษรในแถวเริ่มด้วยช่องว่าง | 22 → 22 | 17 → 18 |
+
+อักษรอังกฤษเร็วขึ้น 22.0% / 24.3% และไทยตัวอย่าง 10.4% / 9.5% ตามลำดับ เป็นการแก้ซ้ำในแถวเดิม การวาดเริ่มต้นอยู่นอกช่วงจับเวลา แต่รวมการสร้างข้อมูลเปรียบเทียบครั้งแรก แถวไทยเก็บ descriptor 6 ไบต์ต่อช่อง รวม 480 ไบต์สำหรับแถวล่าสุด เมื่อสลับแถวหรือข้อมูลหมดอายุ ต้องจัดวางแถวเดิมเพิ่มหนึ่งรอบ จึงไม่ควรนำตัวเลขนี้ไปอ้างว่าเร็วขึ้นเท่ากันทุกหน้าจอ
+
+เส้นทางวาดเต็มแถวมีต้นทุนตรวจเงื่อนไขเพิ่ม กรณีเปลี่ยน 16 ช่องช้าลงประมาณ 7.3% / 8.1% ในการทดสอบนี้ เป้าหมายของรุ่นนี้คือการแก้ข้อความจำนวนน้อย ไม่ใช่เร่งทุกกรณี
+
+Regression เปลี่ยนอักษรอังกฤษหนึ่งช่องตรวจพบการเขียน VGA 20 ไบต์ เทียบกับ 1,530 ไบต์ของการวาดเต็มแถว และภาพทั้งสี่ plane ตรงกัน ตรวจกรณีผสมสระ วรรณยุกต์ การชดเชย 0/1/2/7 ช่อง สี การเปลี่ยนตัวเลือก กรอบ แรเงา และหน้าต่างแทรกระหว่างวาดด้วย
+
+ผลดิบและ hash: [dosbox-partial-3.35.json](benchmarks/dosbox-partial-3.35.json) เป็นผลจำลอง ยังไม่มีผลวัดบนการ์ด VGA จริง
+
+### English summary for 3.35
+
+Eligible sparse edits redraw only changed output cells. Repeated single-cell edits in one row improved ASCII update time by 22–24% and the tested Thai pattern by about 10%. A 480-byte exact rendering-descriptor cache covers one complex row; cold or switched rows require extra layout work. Dense changes retain full-row rendering and incurred 7–8% overhead in this test. These are emulator measurements, not hardware results.
+
+ทดสอบวาดใหม่ทั้งจอ 200 ครั้งต่อกรณี เพิ่มเติม (2 รอบ ค่าแต่ละรอบเท่ากัน):
+
+| รูปแบบแถว | GTHAI 3.34 → 3.35 | GTHAI386 3.34 → 3.35 |
+|---|---:|---:|
+| อังกฤษสีเดียว | 80 → 85 | 80 → 84 |
+| อังกฤษสลับสีตัวอักษร | 87 → 92 | 87 → 91 |
+| อังกฤษสลับสีพื้น | 98 → 103 | 96 → 101 |
+| ไทยผสมสระ–วรรณยุกต์ | 98 → 103 | 93 → 98 |
+
+การวาดใหม่ทั้งจอจึงช้าลงประมาณ 4.6–6.3% จากงานตรวจเงื่อนไขเพิ่มเติม ผลดิบรวมอยู่ในไฟล์ 3.35 ข้างต้น
+
+## 3.36 — ลด DIV ในการตรวจกรอบและแรเงา
+
+แทนการหาร 160 สามจุดด้วยตารางต้นแถวขนาด 250 ไบต์ เทสต์จับคู่ครบ 4,000 byte offsets และชุดตรวจกรอบ/แรเงาเดิม ทั้งสองรุ่นยังใช้เกณฑ์ตรวจเดิม
+
+ตัววัด `--profile frames` เรียก L4B7FH ที่ช่องกลางจอ 200,000 ครั้งต่อกรณี บนหน้า B0h หรือ B3h ทั้งจอ เปิด B800 mapping และตรวจข้อมูลที่เติมก่อนวัด CPU จำลอง 386, normal core, 10,000 cycles, 2 รอบ ได้ค่าซ้ำเท่ากัน หน่วย BIOS tick:
+
+| กรณี | GTHAI 3.35 → 3.36 | GTHAI386 3.35 → 3.36 |
+|---|---:|---:|
+| ตรวจ shade B0h | 16 → 17 | 16 → 16 |
+| ตรวจเส้นตั้ง B3h | 20 → 21 | 20 → 20 |
+
+ผลนี้ยังไม่แสดงความเร็วเพิ่มบน 386 จำลอง: รุ่น 8086 ช้าลง 6.25% / 5% ในสองกรณี ส่วนรุ่น 386 เท่าเดิม ความละเอียดของ tick ไม่สามารถแยกความต่างเล็กกว่านี้ได้ ไม่ใช่ benchmark ของการวาดหน้าจอทั้งหมด และไม่ได้จับเวลา MARK_SHADE_HORIZONTAL โดยตรง
+
+เป้าหมายคือเลี่ยงการหารที่แพงบน 8086 จริง แต่ยังไม่มีผลวัดเครื่อง 8086 ยืนยัน จึงไม่อ้างเปอร์เซ็นต์ความเร็วเพิ่มบนเครื่องจริง ผลดิบ: [dosbox-frames-3.36.json](benchmarks/dosbox-frames-3.36.json)
+
+Version 3.36 replaces three divisions in frame/shading row-boundary checks with a 250-byte table. Exhaustive row mapping and rendering regressions pass. The emulated 386 microbenchmark showed no gain for GTHAI386 and a 5–6.25% slowdown for the 8086 build. Real 8086 performance remains unmeasured.
+
+## 3.37 — MOVSD สำหรับแถวข้อความใน GTHAI386
+
+เปลี่ยนสองจุดจาก 80 WORD เป็น 40 DWORD: สำเนา B800 ไป ROW_TEXT_BUFFER และสำรองแถวไป VID_SAVE ใช้ SI/DI/CX 16 บิตและไม่เปลี่ยนครึ่งบนของรีจิสเตอร์ GTHAI รุ่น 8086 คง MOVSW เดิม
+
+ผล `--profile rows --target GTHAI386`, DOSBox-X normal/386/fixed 10,000 cycles, วาดใหม่ทั้งจอ 200 ครั้งต่อกรณี, 2 รอบได้ค่าเท่ากัน หน่วย BIOS tick:
+
+| กรณี | 3.36 → 3.37 | เวลาลดลง |
+|---|---:|---:|
+| อังกฤษสีเดียว | 84 → 83 | 1.19% |
+| อังกฤษสลับสีตัวอักษร | 91 → 90 | 1.10% |
+| อังกฤษสลับสีพื้น | 101 → 100 | 0.99% |
+| ไทยผสมสระ–วรรณยุกต์ | 98 → 97 | 1.02% |
+
+เป็นผลต่างเพียงหนึ่ง tick ต่อชุดทดสอบ จึงควรสรุปเป็นประมาณ 1% ในงานที่ทดสอบ ไม่อ้างความเร็วบนเครื่องจริงหรือทุกสถานการณ์ ผลดิบและ hash: [dosbox-movsd-3.37.json](benchmarks/dosbox-movsd-3.37.json)
+
+The 386 build now uses REP MOVSD for two 160-byte row copies, retaining 16-bit addressing/counts and preserving upper register halves. Full-screen redraw microbenchmarks improved by approximately 1% on the emulated 386. The 8086 build retains MOVSW; VGA writes and scrolling are unchanged.
+
+## 3.38 — Batch สถานะ VGA ในโหมดไทย 8 บรรทัด
+
+ใช้ `--profile thai8` เรียก UPDATE_SCREEN_THAI_8 โดยตั้ง DISPMODE=1 เปรียบเทียบกับ source snapshot 3.37 บน DOSBox-X normal/386/fixed 10,000 cycles เหมือนกันทั้งสอง executable วาดใหม่ทั้งจอ 200 ครั้งต่อกรณี ทำซ้ำ 2 รอบ ได้ค่าแต่ละรอบเท่ากัน หน่วย BIOS tick:
+
+| กรณี | GTHAI 3.37 → 3.38 | GTHAI386 3.37 → 3.38 |
+|---|---:|---:|
+| อังกฤษสีเดียว | 121 → 109 (9.9%) | 119 → 107 (10.1%) |
+| ไทยตัวอย่าง A1/D4/E8/ASCII | 124 → 112 (9.7%) | 122 → 110 (9.8%) |
+
+ไทยตัวอย่างนี้วาดแต่ละช่องตามโหมด 8 บรรทัด ไม่มีการผสมสระ–วรรณยุกต์อัตโนมัติ ตัววัดเปิด B800 mapping และตรวจข้อมูลก่อนจับเวลา การลดจำนวน OUT ไม่เท่ากับเปอร์เซ็นต์ความเร็วที่เพิ่มขึ้น และยังไม่มีผลวัดบนการ์ดจริง
+
+Regression วาดอักษรอังกฤษ 2,000 ช่องพบ GC OUT ลดจาก 14,000 เป็น 8,003 ครั้ง (42.8%) ตรวจภาพทุก plane และ VID_SAVE เทียบกับการบังคับวาดทีละตัว รวมสี ช่องว่าง cursor เคลื่อน/คงที่/ซ่อน และการสลับไปกลับกับ updater โหมด 25 บรรทัด หลังออก batch flags ต้องเป็นศูนย์และ GC ต้องกลับ mode 0 โดยปิด set/reset
+
+ผลดิบและ hash: [dosbox-thai8-3.38.json](benchmarks/dosbox-thai8-3.38.json)
+
+Thai 8-line mode now batches VGA register state while reseeding background latches for every glyph. It retains the original non-composing layout and flushes on every exit. Full-screen redraw tests improved by approximately 10% in both builds on the emulated 386; real-hardware performance remains unmeasured.

@@ -1,6 +1,6 @@
 # GThai VGA
 
-ไดรเวอร์ภาษาไทยสำหรับ DOS รุ่น **3.32** ใช้ VGA 640×480 สี 16 สี และฟอนต์ 8×19 จุด มีสองรุ่นจาก source เดียวกัน: รุ่น 8086 และรุ่น 386 ขึ้นไป
+ไดรเวอร์ภาษาไทยสำหรับ DOS รุ่น **3.38** ใช้ VGA 640×480 สี 16 สี และฟอนต์ 8×19 จุด มีสองรุ่นจาก source เดียวกัน: รุ่น 8086 และรุ่น 386 ขึ้นไป
 
 ## ประวัติและเครดิต
 
@@ -37,7 +37,7 @@ The revised fonts combine and adapt glyphs from **AxTHAI**, **ThaiPro**, and **A
 
 Display options include English, Thai 8-line mode without automatic vowel/tone composition, and Thai 25-line mode with composition. The settings dialog supports the taller fonts, and the Thai cursor spans the full character height.
 
-Both executables provide the same features and fonts; load only one at a time. Version 3.32 fixes popup dialogs inheriting interrupted batch state and protects individual VGA glyph updates from interrupts. Version 3.31 reduces repeated VGA register setup during Thai 25-line screen updates in both builds, while the 386 build also compares text using `CMPSD`. The 386 build remains a 16-bit DOS real-mode program, uses 32-bit instructions for glyph copying and composition, and preserves the interrupted program’s upper register bits. VGA drawing and latch scrolling remain byte-based. In the version 3.30 DOSBox-X comparison on the same emulated 386, it reduced Thai composition time by **23.1%** and composed Thai drawing time by **9.2%**. These are emulator microbenchmarks, not real-hardware measurements; see the [benchmark report](docs/BENCHMARK.md).
+Both executables provide the same features and fonts; load only one at a time. Version 3.38 also batches VGA register state in Thai 8-line mode, reseeding latches for every glyph and restoring VGA state on all exits. It keeps the existing non-composing layout. Version 3.37 uses REP MOVSD in the 386 build for 160-byte row staging and snapshot copies, with 16-bit addresses and counts. The 8086 build retains MOVSW. Version 3.36 replaces three frame/shading row-boundary divisions with a 250-byte lookup table. This has not demonstrated a speedup on the emulated 386; real 8086 timing remains unmeasured. Version 3.35 redraws only changed output cells for eligible rows with at most eight changed source cells. ASCII rows compare character/colour pairs; composed Thai rows use exact six-byte rendering descriptors and a 480-byte cache for the most recently updated complex row. Dense changes and rows starting with spaces retain full-row rendering. Rebuilding a cold Thai row cache has additional cost.  Version 3.34 can stage a changed text row in RAM and reuse background latches within interrupt-masked groups of at most eight glyphs. Sparse row starts and immediately alternating backgrounds retain the direct path; frame detection still uses the original B800 context. Version 3.33 groups consecutive spaces with the same background colour during Thai 25-line screen updates, while preserving vowel compensation and falling back to the per-cell writer when the first two backgrounds differ. Version 3.32 fixes popup dialogs inheriting interrupted batch state and protects individual VGA glyph updates from interrupts. Version 3.31 reduces repeated VGA register setup during Thai 25-line screen updates in both builds, while the 386 build also compares text using `CMPSD`. The 386 build remains a 16-bit DOS real-mode program, uses 32-bit instructions for glyph copying and composition, and preserves the interrupted program’s upper register bits. VGA drawing and latch scrolling remain byte-based. In the version 3.30 DOSBox-X comparison on the same emulated 386, it reduced Thai composition time by **23.1%** and composed Thai drawing time by **9.2%**. These are emulator microbenchmarks, not real-hardware measurements; see the [benchmark report](docs/BENCHMARK.md).
 
 ## ความสามารถ
 
@@ -145,6 +145,9 @@ python tests/run_all.py
 - ทั้งสองรุ่นเก็บสถานะ VGA ระหว่างวาดอักษรต่อเนื่องในโหมดไทย 25 บรรทัด ลด `OUT` จาก 7 เหลือ 4 ครั้งหลังตัวแรก และคืนสถานะก่อนวาดช่องว่าง/cursor และเมื่อจบการอัปเดต
 - รุ่น 386 ใช้ `REPE CMPSD` ตรวจข้อความครั้งละสองช่อง และตรวจซ้ำระดับ WORD เพื่อหาช่องแรกที่ต่างอย่างแม่นยำ
 - วาดใหม่เฉพาะข้อมูลข้อความที่เปลี่ยน
+- รุ่น 3.34 พักข้อมูลแถวใน RAM เมื่อสองช่องแรกไม่ใช่ช่องว่างและมีสีพื้นเหมือนกัน เพื่อลดการอ่าน B800 แทรก; บริบทตรวจกรอบยังอ่านต้นฉบับและยกเลิกการจำ latch ก่อนอ่าน
+- จำ latch เฉพาะกลุ่มไม่เกิน 8 glyph ที่ปิด interrupt แล้วล้างค่าที่จำก่อนเปิด interrupt จึงไม่ใช้ latch ค้างข้าม interrupt handler อื่น
+- รุ่น 3.33 วาดช่องว่างต่อเนื่องที่มีสีพื้นเหมือนกันเป็นชุด โดยคงการนับช่องสำหรับชดเชยสระเดิม; หากสองช่องแรกมีสีพื้นต่างกันจะใช้ลูปเดิมทั้งช่วง
 - ย้ายพื้นที่ภาพเริ่มที่ offset E000h และวนผ่านขอบ 64 KB เพื่อเว้นพื้นที่ B800 สำหรับข้อความและสำรองจอ
 - ใช้การคัดลอกแบบไบต์ในการเลื่อนภาพด้วย VGA latch
 
@@ -183,6 +186,18 @@ python tests/run_all.py
 
 ผลวัดรุ่น 3.30 ด้วย DOSBox-X บน CPU จำลอง 386 และค่า cycles เท่ากัน: รุ่น 386 ใช้เวลาผสมฟอนต์ลดลง 23.1% วาดข้อความไทยลดลง 9.2% และวาดอังกฤษลดลง 2.5% ดู [วิธีทดสอบและผลละเอียด](docs/BENCHMARK.md) ตัวเลขนี้เป็นผลในตัวจำลอง ยังไม่ได้วัดบนเครื่องจริง
 
-ผลเทียบก่อน–หลังรุ่น 3.31 ใน DOSBox-X: วาดใหม่ทั้งจอใช้เวลาลดลง 6.1% สำหรับ GTHAI และ 6.3% สำหรับ GTHAI386 ส่วนตรวจจอเดิมในรุ่น 386 ลดลง 48.9% ดูเงื่อนไขใน [รายงานทดสอบ](docs/BENCHMARK.md)
+ผล screen benchmark รุ่น 3.31 เดิมถูกถอนการอ้างอิง เนื่องจากตัววัดไม่ได้เปิด B800 mapping ให้ตรงกับไดรเวอร์ ดูผลวัดรุ่น 3.33 ด้วยตัววัดที่แก้แล้วใน [รายงานทดสอบ](docs/BENCHMARK.md)
 
 รายละเอียดสำหรับโปรแกรม DOS ที่ต้องการเรียกไดรเวอร์อยู่ใน [API.md](API.md) โดยมีข้อจำกัดของ API เดิมที่ยังไม่ได้ทดสอบหรือแก้ครบทุกคำสั่ง
+
+ผลวัดรุ่น 3.33 เทียบ 3.32 ใน DOSBox-X ด้วยตัววัดที่แก้ B800 mapping แล้ว: ช่องว่างยาวใช้เวลาลดลง 54.5% สำหรับ GTHAI และ 53.1% สำหรับ GTHAI386 ส่วนข้อความ A ผสมช่องว่างลดลง 42.0% และ 40.3% ตามลำดับ ดูรูปแบบข้อมูลและข้อจำกัดใน [รายงานทดสอบ](docs/BENCHMARK.md)
+
+ผลรุ่น 3.34 เทียบ 3.33 ใน DOSBox-X: แถวอักษรสีเดียวใช้เวลาลดลง 17.5% / 14.9% สำหรับ GTHAI / GTHAI386 และข้อความไทยตัวอย่างลดลงประมาณ 5% กรณีสีพื้นสลับหรือข้อความที่มีช่องว่างมากบางแบบอาจช้าลงเล็กน้อย ดูผลครบทุกกรณีใน [รายงานทดสอบ](docs/BENCHMARK.md)
+
+รุ่น 3.35 ลดการวาดซ้ำเมื่อเปลี่ยนไม่เกิน 8 ช่องในแถวที่เข้าเงื่อนไข โดยเทียบผลหลังจัดวางสระ–วรรณยุกต์ ใช้ข้อมูลระบุภาพ 6 ไบต์ต่อช่อง และเก็บแถวไทยล่าสุด 480 ไบต์ ผล DOSBox-X เมื่อแก้ซ้ำในแถวเดิม: อังกฤษเร็วขึ้นประมาณ 22–24% และไทยตัวอย่างประมาณ 10% กรณีต้องวาดเต็มแถวมีต้นทุนเพิ่ม ดู [ผลทดสอบ](docs/BENCHMARK.md)
+
+รุ่น 3.36 ลด `DIV` สามจุดในการตรวจกรอบ/แรเงาด้วยตารางต้นแถว 250 ไบต์ ใช้ได้ทั้งสองรุ่น ผล DOSBox-X จำลอง 386 ยังไม่แสดงความเร็วเพิ่ม และยังไม่มีผลวัดบน 8086 จริง ดูรายละเอียดใน [รายงานทดสอบ](docs/BENCHMARK.md)
+
+รุ่น 3.37 ใช้ `REP MOVSD` ใน GTHAI386 สำหรับพักแถวข้อความและสำรองลง `VID_SAVE` ครั้งละ 160 ไบต์ ผล DOSBox-X วาดใหม่ทั้งจอเร็วขึ้นประมาณ 1% ส่วน GTHAI ยังคงใช้ `MOVSW`
+
+รุ่น 3.38 เพิ่ม batch สถานะ VGA ให้โหมดไทย 8 บรรทัดทั้งสองรุ่น โดยยังไม่ผสมสระ–วรรณยุกต์อัตโนมัติ โหลด latch ใหม่ทุกอักษร และคืนสถานะก่อนออกทุกทาง การวาดอังกฤษเต็มจอลด GC OUT จาก 14,000 เหลือ 8,003 ครั้ง ดู [ผลเวลา](docs/BENCHMARK.md)
