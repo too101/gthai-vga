@@ -130,3 +130,80 @@ for row in (3,3,12,12,3,20,12,20):
  for q in (ref,opt):put(q,screen);update(q)
  equal(ref,opt,('complex cache replacement',row))
 print('PASS: alternating complex rows replace and reuse the descriptor cache safely')
+
+# Eight changes remain eligible; nine leading changes reject before full parsing.
+for changed in (8,9,80):
+ ref=setup(True);opt=setup();seen=[0]
+ def full_scan(u,address,size,_):seen[0]+=1
+ opt.u.hook_add(UC_HOOK_CODE,full_scan,begin=0x10000+symbols['PPR_FULL_SCAN'],end=0x10000+symbols['PPR_FULL_SCAN'])
+ screen=bytearray(bytes([65,7])*2000)
+ for q in (ref,opt):put(q,screen);update(q)
+ for col in range(changed):screen[(12*80+col)*2]=66
+ for q in (ref,opt):put(q,screen);update(q)
+ equal(ref,opt,('leading changed-cell threshold',changed))
+ assert seen[0]==(1 if changed==8 else 0),(changed,seen)
+print('PASS: 8 leading changes retain partial scan; 9/80 changes bypass it with exact pixels')
+
+# Four associative slots survive alternating edits; a fifth distinct row evicts.
+ref=setup(True);opt=setup();seen=[0]
+def capture(u,address,size,_):seen[0]+=1
+opt.u.hook_add(UC_HOOK_CODE,capture,begin=0x10000+symbols['CAPTURE_OLD_GLYPH'],end=0x10000+symbols['CAPTURE_OLD_GLYPH'])
+screen=bytearray(bytes([0xa1,7,0xd4,7,0xe8,7,65,7])*500)
+for q in (ref,opt):put(q,screen);update(q)
+for turn,row in enumerate((3,12,21,22,3,12,21,22,7,3)):
+ seen[0]=0;screen[(row*80+41)*2]^=0x0c
+ for q in (ref,opt):put(q,screen);update(q)
+ equal(ref,opt,('four-row descriptor cache',turn,row))
+ assert (seen[0]==0)==(4<=turn<8),(turn,row,seen)
+print('PASS: four complex rows retain descriptors across alternating edits; a fifth distinct row rebuilds safely')
+
+# Composed glyphs are built only after their exact output descriptor differs.
+ref=setup(True);opt=setup();calls=[0,0]
+for i,label in enumerate(('COPY_GLYPH19','OR_GLYPH_ROWS')):
+ def count_bitmap(u,address,size,_,i=i):
+  calls[i]+=1
+  if u.mem_read(0x10000+symbols['ROW_PLAN_MODE'],1)==b'\x02':
+   assert not u.reg_read(UC_X86_REG_EFLAGS)&0x200
+
+ opt.u.hook_add(UC_HOOK_CODE,count_bitmap,begin=0x10000+symbols[label],end=0x10000+symbols[label])
+screen=bytearray(bytes([0xa1,7,0xd4,7,0xe8,7,65,7])*500)
+for q in (ref,opt):put(q,screen);update(q)
+calls[:]=[0,0]
+screen[(12*80+41)*2+1]=4
+for q in (ref,opt):put(q,screen);update(q)
+equal(ref,opt,'unchanged composed bitmap')
+assert calls==[0,0],calls
+calls[:]=[0,0];screen[(12*80+41)*2]=0xd8
+for q in (ref,opt):put(q,screen);update(q)
+equal(ref,opt,'changed composed bitmap')
+assert 0<calls[0]<=2 and 0<calls[1]<=6,calls
+print('PASS: unchanged composed cells perform zero bitmap copies/ORs; changed cells compose on demand')
+
+# Any four rows can coexist; touch promotes and fifth insertion evicts the LRU.
+ref=setup(True);opt=setup();seen=[0]
+def lru_capture(u,address,size,_):seen[0]+=1
+opt.u.hook_add(UC_HOOK_CODE,lru_capture,begin=0x10000+symbols['CAPTURE_OLD_GLYPH'],end=0x10000+symbols['CAPTURE_OLD_GLYPH'])
+screen=bytearray(bytes([0xa1,7,0xd4,7,0xe8,7,65,7])*500)
+for q in (ref,opt):put(q,screen);update(q)
+for turn,row in enumerate((3,7,11,15,3,7,11,15,3,19,3,7)):
+ seen[0]=0;screen[(row*80+41)*2]^=0x0c
+ for q in (ref,opt):put(q,screen);update(q)
+ equal(ref,opt,('LRU composed-row cache',turn,row))
+ hit=turn in (4,5,6,7,8,10)
+ assert (seen[0]==0)==hit,(turn,row,seen)
+ assert sorted(opt.u.mem_read(0x10000+symbols['ROW_CACHE_RANK'],4))==[0,1,2,3]
+print('PASS: four formerly colliding rows coexist; touches promote MRU and replacement evicts the LRU')
+
+# Every overlay glyph in the classification table matches eager full composition.
+ref=setup(True);opt=setup();screen=bytearray(bytes([65,7])*2000)
+for q in (ref,opt):put(q,screen);update(q)
+types=bytes(opt.u.mem_read(0x10000+symbols['L152FH'],256))
+cases=0
+for kind in (7,8,9):
+ for code in range(256):
+  if types[code]!=kind:continue
+  chars=([0xa1,code,0xd4,0xe8] if kind==7 else [0xa1,code,0xe8,65] if kind==8 else [0xa1,0xd4,code,65])
+  for i,ch in enumerate(chars):screen[(12*80+i)*2]=ch
+  for q in (ref,opt):put(q,screen);update(q)
+  equal(ref,opt,('all deferred overlay glyphs',kind,code));cases+=1
+print('PASS: all',cases,'classified overlay glyphs match eager composition')

@@ -244,3 +244,114 @@ Regression วาดอักษรอังกฤษ 2,000 ช่องพบ G
 ผลดิบและ hash: [dosbox-thai8-3.38.json](benchmarks/dosbox-thai8-3.38.json)
 
 Thai 8-line mode now batches VGA register state while reseeding background latches for every glyph. It retains the original non-composing layout and flushes on every exit. Full-screen redraw tests improved by approximately 10% in both builds on the emulated 386; real-hardware performance remains unmeasured.
+
+## 3.39 — ลดต้นทุนตรวจ partial redraw
+
+แยก preflight ที่เก็บ AX เท่านั้นออกจากการเตรียม parser ตรวจแถวที่ไม่มีภาพอ้างอิงหรือเริ่มด้วยช่องว่างก่อน และตรวจเก้าช่องแรกแบบหยุดทันทีเมื่อพบช่องเดิม ถ้าทั้งเก้าช่องต่างกันย่อมเกินขีดจำกัดแปดช่อง จึงวาดเต็มแถวได้ทันที ส่วน BX/BP/DS เก็บเฉพาะตอนสร้าง descriptor แถวผสม
+
+เปรียบเทียบกับ source snapshot 3.38 บน DOSBox-X normal/386/fixed 10,000 cycles, 2 รอบ ค่าแต่ละรอบเท่ากัน ใช้ `--profile rows` สำหรับวาดใหม่ทั้งจอ 200 ครั้ง และ `--profile partial` สำหรับแก้แถวเดิม 2,000 ครั้ง หน่วย BIOS tick
+
+การทดสอบ partial ทั้งห้ากรณีได้เวลาเท่าเดิมทั้งสองรุ่นภายในความละเอียด tick ได้แก่ อังกฤษ เปลี่ยนสี ไทยผสม เปลี่ยน 16 ช่องกลางแถว และแถวเริ่มด้วยช่องว่าง กรณี 16 ช่องกลางแถวยังต้องตรวจละเอียด เพราะ probe ต้นแถวไม่ครอบคลุมบริเวณนั้น
+
+เพิ่ม regression กรณี 8 ช่องแรกเปลี่ยนต้องเข้าการตรวจละเอียด ส่วน 9/80 ช่องแรกเปลี่ยนต้องข้าม โดยภาพทุก plane ตรงกับการวาดเต็มแถว รวมชุดเดิมด้านสระ วรรณยุกต์ การสลับ cache และหน้าต่างแทรก ยังไม่มีผลวัดบนเครื่องจริง
+
+| วาดใหม่ทั้งจอ | GTHAI 3.38 → 3.39 | GTHAI386 3.38 → 3.39 |
+|---|---:|---:|
+| อังกฤษสีเดียว | 85 → 84 | 83 → 82 |
+| อังกฤษสลับสีตัวอักษร | 92 → 90 | 90 → 89 |
+| อังกฤษสลับสีพื้น | 103 → 102 | 100 → 99 |
+| ไทยผสมสระ–วรรณยุกต์ | 103 → 102 | 97 → 96 |
+
+วาดใหม่ทั้งจอเร็วขึ้น 1.0–2.2% ในชุดนี้ ลดได้บางส่วนของต้นทุนที่เพิ่มใน 3.35 ไม่ได้คืนความเร็วทั้งหมด ส่วน partial profile ทั้งห้ากรณีเวลาเท่าเดิม: GTHAI 32/32/43/44/22 ticks และ GTHAI386 27/27/37/39/17 ticks ตามลำดับกรณีอังกฤษ/สี/ไทย/16 ช่อง/ช่องว่าง ผลดิบและ hash: [dosbox-preflight-3.39.json](benchmarks/dosbox-preflight-3.39.json)
+
+Version 3.39 reduces partial-redraw setup overhead with an early eligibility check, a bounded nine-cell dense-change probe, and narrower register saves. Full-screen redraw tests improved by 1.0–2.2%; all five sparse/dense-edit controls retained their previous tick counts. This recovers only part of the overhead introduced in 3.35. Measurements use an emulated 386, not real hardware.
+
+## 3.40 — โหมด 8 บรรทัดและ cache แถวผสมสี่ช่อง
+
+เทียบ source snapshot 3.39 กับ 3.40 บน DOSBox-X normal/386/fixed 10,000 cycles ทั้งสอง executable ทำซ้ำสองรอบ ค่าแต่ละรอบเท่ากัน หน่วย BIOS tick (ประมาณ 54.925 ms)
+
+### โหมดไทย 8 บรรทัด
+
+`--profile thai8` วาดใหม่ทั้งจอ 200 ครั้งต่อกรณี ตั้ง DISPMODE=1 ไม่ผสมสระ–วรรณยุกต์ เปิดและตรวจ B800 mapping ก่อนวัด
+
+| กรณี | GTHAI 3.39 → 3.40 | GTHAI386 3.39 → 3.40 |
+|---|---:|---:|
+| อังกฤษสีเดียว | 109 → 109 | 107 → 108 |
+| ไทย A1/D4/E8/ASCII แยกช่อง | 112 → 113 | 110 → 111 |
+| ช่องว่างยาว | 94 → 32 | 92 → 32 |
+| A ผสมช่องว่าง 15 ช่อง | 96 → 46 | 94 → 46 |
+| ช่องว่างสีพื้นสลับ | 94 → 70 | 92 → 67 |
+
+ช่องว่างยาวเร็วขึ้น 66.0% / 65.2%, แบบผสมเร็วขึ้น 52.1% / 51.1% และแบบสีพื้นสลับเร็วขึ้น 25.5% / 27.2% ตามลำดับ แถวตัวอักษรเต็มไม่เร็วขึ้นในตัวจำลองนี้ บางกรณีเพิ่มหนึ่ง tick (ประมาณ 0.9%) แม้การเดินจอต่อเนื่องจะลด DIV จาก 2,000 เป็น 25 ครั้ง จึงไม่อ้างว่าการลด DIV หรือใช้ CMPSD ทำให้ทุกกรณีเร็วขึ้น และยังไม่มีผลบน 8086 จริง
+
+### cache แถวผสม
+
+`--profile cache4` ทำ 2,000 รอบ แก้สระ D4/D8 หนึ่งช่องและอัปเดตทันทีทีละแถว รอบหนึ่งมี 4 updates สำหรับกรณีสี่แถว หรือ 2 updates สำหรับกรณีชนช่อง cache รวมการสร้าง cache ครั้งแรก แต่ไม่รวมวาดจอเริ่มต้น ห้ามเปรียบเทียบเวลาข้ามสองกรณีโดยไม่คิดจำนวน updates
+
+| กรณี | GTHAI 3.39 → 3.40 | GTHAI386 3.39 → 3.40 |
+|---|---:|---:|
+| สลับแถว 3/12/21/22 คนละช่อง cache | 244 → 174 | 220 → 150 |
+| สลับแถว 3/7 ชนช่อง cache | 122 → 122 | 110 → 111 |
+
+สี่แถวคนละช่องเร็วขึ้น 28.7% / 31.8% เมื่อชนช่องไม่ได้ประโยชน์ และรุ่น 386 เพิ่มหนึ่ง tick ในชุดนี้ cache เป็น direct-mapped โดยใช้เลขแถว modulo four ไม่ใช่ LRU และไม่ได้รับประกันว่าแถวใด ๆ สี่แถวจะอยู่พร้อมกันได้ ข้อมูลภาพเพิ่ม 1,440 ไบต์ และข้อมูลกำกับเพิ่ม 21 ไบต์
+
+### กรณีควบคุม partial redraw
+
+เทียบกับผล final 3.39 (`--profile partial`, 2,000 updates ต่อกรณี): อังกฤษ/สี/ไทยแถวเดียว/ช่องว่างได้เวลาเท่าเดิมทั้งสองรุ่น ส่วน 16 ช่องกลางแถว GTHAI เท่าเดิมที่ 44 ticks และ GTHAI386 เพิ่มจาก 39 เป็น 40 ticks (2.6%) จึงมีต้นทุนเพิ่มเล็กน้อยนอกกรณี cache hit หลายแถว
+
+Regression ตรวจตำแหน่งโหมด 8 บรรทัดครบ 2,000 ช่อง การวาดช่องว่างเทียบทีละช่องและทุก plane ขอบแถวและสี การเทียบ WORD คี่ทุกตำแหน่ง และการคง/ชน/ยกเลิก cache สี่ช่อง พร้อมชุดเดิมของ popup และการสลับโหมด ทั้งสอง executable ผ่าน
+
+ผลดิบและ hash: [dosbox-multirow-3.40.json](benchmarks/dosbox-multirow-3.40.json) เป็นการทดสอบตัวจำลอง ไม่ใช่ผลบนการ์ด VGA จริง
+
+Version 3.40 caches Thai-8 row coordinates, uses CMPSD for longer 386 comparison tails with an immediate-word fast path, groups row-bounded spaces, and expands composed-row descriptors to four direct-mapped cache slots. Long blank redraws improved by about 65–66%, and alternating edits across four non-colliding Thai rows by 29–32%. Dense character redraws showed no gain and some one-tick regressions. Colliding cache rows still rebuild; cache data grows by 1,461 bytes. Hardware timings remain unmeasured.
+
+## 3.41 — ผสมภาพเมื่อเปลี่ยน, วาดเต็มแถวเฉพาะทาง และ LRU
+
+เทียบ source snapshot 3.40 กับ 3.41 ใน DOSBox-X normal/386/fixed 10,000 cycles ทั้งสอง executable ทำซ้ำ 2 รอบ ทุกค่าซ้ำเท่ากัน หน่วย BIOS tick
+
+### วาดใหม่ทั้งจอ
+
+`--profile rows` วาดใหม่ทั้งจอ 200 ครั้งต่อกรณี ทาง RENDER_FULL_ROW สร้างจาก parser เดียวกันแต่ตัดเงื่อนไข descriptor และ deferred composition ออก ตัวตรวจ generator --check ป้องกันกฎจัดวางสองทางไม่ตรงกัน
+
+| กรณี | GTHAI 3.40 → 3.41 | GTHAI386 3.40 → 3.41 |
+|---|---:|---:|
+| อังกฤษสีเดียว | 84 → 81 | 82 → 80 |
+| อังกฤษสลับสีตัวอักษร | 91 → 88 | 89 → 87 |
+| อังกฤษสลับสีพื้น | 102 → 99 | 99 → 97 |
+| ไทยผสมสระ–วรรณยุกต์ | 102 → 99 | 96 → 93 |
+
+เร็วขึ้นประมาณ 2.0–3.6% ในชุดนี้ เป็นผลรวมของการเปลี่ยนรุ่น ไม่ได้แยกจับเวลาเฉพาะแต่ละคำสั่ง
+
+### แก้ข้อความทีละช่อง
+
+`--profile partial` 2,000 updates ต่อกรณี เทียบกับผล final 3.40:
+
+| กรณี | GTHAI 3.40 → 3.41 | GTHAI386 3.40 → 3.41 |
+|---|---:|---:|
+| อักษรอังกฤษ | 32 → 32 | 27 → 27 |
+| สีตัวอักษร | 32 → 32 | 27 → 27 |
+| สระในแถวไทย | 43 → 39 | 37 → 35 |
+| เปลี่ยน 16 ช่องกลางแถว | 44 → 43 | 40 → 38 |
+| แถวเริ่มด้วยช่องว่าง | 22 → 22 | 17 → 17 |
+
+ไทยตัวอย่างเร็วขึ้น 9.3% / 5.4% ทาง partial สร้าง descriptor ก่อน ไม่ผสม bitmap จนกว่าจะพบว่าภาพเปลี่ยน เทสต์ยืนยันภาพเดิมมี COPY_GLYPH19/OR_GLYPH_ROWS เป็นศูนย์ ส่วน glyph ที่เปลี่ยนผสมและเขียน VGA ในช่วงป้องกัน interrupt เดียวกัน จากนั้นปล่อย group ก่อนคืน FLAGS
+
+### LRU และ API query
+
+`--profile cache4` 2,000 รอบ กรณี four มี 4 updates ต่อรอบ กรณี collision มี 2 และ query มี 1 รวมการสร้าง cache แรก แต่ไม่รวมการวาดจอเริ่มต้น
+
+| กรณี | GTHAI 3.40 → 3.41 | GTHAI386 3.40 → 3.41 |
+|---|---:|---:|
+| สลับแถว 3/12/21/22 | 174 → 158 | 150 → 139 |
+| สลับแถว 3/7 ที่เคยชน direct mapping | 122 → 79 | 111 → 70 |
+| เรียก API 80h อ่านรุ่นก่อนแก้สระแต่ละครั้ง | 50 → 39 | 44 → 35 |
+
+แถวที่เคยชน cache เร็วขึ้น 35.2% / 36.9% และ query ทุก update เร็วขึ้น 22.0% / 20.5% กรณี query เป็น workload เฉพาะโปรแกรมที่เรียก API บ่อย ไม่ใช่การพิมพ์ปกติ ผลเกิดจากทั้ง deferred composition และการรักษา cache ไม่ใช่เปอร์เซ็นต์ของ LRU เพียงอย่างเดียว
+
+cache ยังมี 4 ช่อง แต่เป็น fully associative LRU เก็บสี่แถวใด ๆ ได้ เมื่อเพิ่มแถวที่ห้าแทนแถวที่ไม่ได้ใช้นานที่สุด เพิ่ม rank/hit metadata รวม 5 ไบต์ โค้ดเต็มไฟล์เพิ่มจาก 3.40 จำนวน 653 ไบต์ (GTHAI) / 636 ไบต์ (GTHAI386) ขนาด release 34,172 / 34,201 ไบต์
+
+Regression ทั้งสองรุ่นผ่าน รวม glyph ผสมทุกชนิดใน classification table 15 glyphs, สระ/วรรณยุกต์/สี/translation, popup แทรก, LRU promotion/eviction, API query/save-options ไม่ยกเลิก cache และ setters ยกเลิกครบทุกช่อง การบันทึกไฟล์ของ API 82h ถูก stub เฉพาะในเทสต์ cache เพื่อไม่เขียนไฟล์จริง
+
+ผลดิบและ hash: [dosbox-deferred-lru-3.41.json](benchmarks/dosbox-deferred-lru-3.41.json) ใช้ตัวจำลอง ยังไม่มีผลวัดเครื่องจริง
+
+Version 3.41 defers composed bitmaps until a cell's exact descriptor changes, specializes full-row rendering from the shared parser, retains caches across API queries/save-options, and uses four fully associative LRU slots. Full redraws improved by 2.0–3.6%, single-row Thai edits by 5–9%, and edits alternating between formerly colliding rows by 35–37%. Frequent API-query workloads improved by 20–22%. These are combined-version emulator results; individual optimizations were not timed separately. LRU adds five metadata bytes, while total COM size grows by 653/636 bytes.

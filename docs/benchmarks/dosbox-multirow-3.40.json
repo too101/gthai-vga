@@ -1,0 +1,641 @@
+{
+  "baseline_version": "3.39",
+  "updated_version": "3.40",
+  "baseline_note": "3.39 uncommitted source snapshot; thai8/cache4 baseline built with current include (version text only). Partial baseline reused from final 3.39 measurement with its original include/version.",
+  "thai8_before": {
+    "source_sha256": "90238edc8e3a756328b80a045b97d4e32f33f6250ea46135ebbcbc70229ae81b",
+    "include_sha256": "b85455b0a49fe601bd9c9fa4f6052b00790083cae5dd130d0ff1901bf8e0526b",
+    "environment": {
+      "core": "normal",
+      "cpu": "386",
+      "cycles": 10000,
+      "repetitions": 2,
+      "scale": 1,
+      "profile": "thai8",
+      "timer": "BIOS tick",
+      "tick_seconds": 0.05492540115422458
+    },
+    "cases": {
+      "row_ascii_same": 200,
+      "row_thai": 200,
+      "blank_long": 200,
+      "blank_mixed": 200,
+      "blank_alternating": 200
+    },
+    "samples": {
+      "GTHAI": [
+        {
+          "case": "row_ascii_same",
+          "repeat": 0,
+          "ticks": 109
+        },
+        {
+          "case": "row_thai",
+          "repeat": 0,
+          "ticks": 112
+        },
+        {
+          "case": "blank_long",
+          "repeat": 0,
+          "ticks": 94
+        },
+        {
+          "case": "blank_mixed",
+          "repeat": 0,
+          "ticks": 96
+        },
+        {
+          "case": "blank_alternating",
+          "repeat": 0,
+          "ticks": 94
+        },
+        {
+          "case": "row_ascii_same",
+          "repeat": 1,
+          "ticks": 109
+        },
+        {
+          "case": "row_thai",
+          "repeat": 1,
+          "ticks": 112
+        },
+        {
+          "case": "blank_long",
+          "repeat": 1,
+          "ticks": 94
+        },
+        {
+          "case": "blank_mixed",
+          "repeat": 1,
+          "ticks": 96
+        },
+        {
+          "case": "blank_alternating",
+          "repeat": 1,
+          "ticks": 94
+        }
+      ],
+      "GTHAI386": [
+        {
+          "case": "row_ascii_same",
+          "repeat": 0,
+          "ticks": 107
+        },
+        {
+          "case": "row_thai",
+          "repeat": 0,
+          "ticks": 110
+        },
+        {
+          "case": "blank_long",
+          "repeat": 0,
+          "ticks": 92
+        },
+        {
+          "case": "blank_mixed",
+          "repeat": 0,
+          "ticks": 94
+        },
+        {
+          "case": "blank_alternating",
+          "repeat": 0,
+          "ticks": 92
+        },
+        {
+          "case": "row_ascii_same",
+          "repeat": 1,
+          "ticks": 107
+        },
+        {
+          "case": "row_thai",
+          "repeat": 1,
+          "ticks": 110
+        },
+        {
+          "case": "blank_long",
+          "repeat": 1,
+          "ticks": 92
+        },
+        {
+          "case": "blank_mixed",
+          "repeat": 1,
+          "ticks": 94
+        },
+        {
+          "case": "blank_alternating",
+          "repeat": 1,
+          "ticks": 92
+        }
+      ]
+    }
+  },
+  "thai8_after": {
+    "source_sha256": "904ed8c4609dcc7537ccc835c3215e3227b6e4102f2b442bfb05bf4e84b00e37",
+    "include_sha256": "b85455b0a49fe601bd9c9fa4f6052b00790083cae5dd130d0ff1901bf8e0526b",
+    "environment": {
+      "core": "normal",
+      "cpu": "386",
+      "cycles": 10000,
+      "repetitions": 2,
+      "scale": 1,
+      "profile": "thai8",
+      "timer": "BIOS tick",
+      "tick_seconds": 0.05492540115422458
+    },
+    "cases": {
+      "row_ascii_same": 200,
+      "row_thai": 200,
+      "blank_long": 200,
+      "blank_mixed": 200,
+      "blank_alternating": 200
+    },
+    "samples": {
+      "GTHAI": [
+        {
+          "case": "row_ascii_same",
+          "repeat": 0,
+          "ticks": 109
+        },
+        {
+          "case": "row_thai",
+          "repeat": 0,
+          "ticks": 113
+        },
+        {
+          "case": "blank_long",
+          "repeat": 0,
+          "ticks": 32
+        },
+        {
+          "case": "blank_mixed",
+          "repeat": 0,
+          "ticks": 46
+        },
+        {
+          "case": "blank_alternating",
+          "repeat": 0,
+          "ticks": 70
+        },
+        {
+          "case": "row_ascii_same",
+          "repeat": 1,
+          "ticks": 109
+        },
+        {
+          "case": "row_thai",
+          "repeat": 1,
+          "ticks": 113
+        },
+        {
+          "case": "blank_long",
+          "repeat": 1,
+          "ticks": 32
+        },
+        {
+          "case": "blank_mixed",
+          "repeat": 1,
+          "ticks": 46
+        },
+        {
+          "case": "blank_alternating",
+          "repeat": 1,
+          "ticks": 70
+        }
+      ],
+      "GTHAI386": [
+        {
+          "case": "row_ascii_same",
+          "repeat": 0,
+          "ticks": 108
+        },
+        {
+          "case": "row_thai",
+          "repeat": 0,
+          "ticks": 111
+        },
+        {
+          "case": "blank_long",
+          "repeat": 0,
+          "ticks": 32
+        },
+        {
+          "case": "blank_mixed",
+          "repeat": 0,
+          "ticks": 46
+        },
+        {
+          "case": "blank_alternating",
+          "repeat": 0,
+          "ticks": 67
+        },
+        {
+          "case": "row_ascii_same",
+          "repeat": 1,
+          "ticks": 108
+        },
+        {
+          "case": "row_thai",
+          "repeat": 1,
+          "ticks": 111
+        },
+        {
+          "case": "blank_long",
+          "repeat": 1,
+          "ticks": 32
+        },
+        {
+          "case": "blank_mixed",
+          "repeat": 1,
+          "ticks": 46
+        },
+        {
+          "case": "blank_alternating",
+          "repeat": 1,
+          "ticks": 67
+        }
+      ]
+    }
+  },
+  "cache_before": {
+    "source_sha256": "90238edc8e3a756328b80a045b97d4e32f33f6250ea46135ebbcbc70229ae81b",
+    "include_sha256": "b85455b0a49fe601bd9c9fa4f6052b00790083cae5dd130d0ff1901bf8e0526b",
+    "environment": {
+      "core": "normal",
+      "cpu": "386",
+      "cycles": 10000,
+      "repetitions": 2,
+      "scale": 1,
+      "profile": "cache4",
+      "timer": "BIOS tick",
+      "tick_seconds": 0.05492540115422458
+    },
+    "cases": {
+      "cache_four": 2000,
+      "cache_collision": 2000
+    },
+    "samples": {
+      "GTHAI": [
+        {
+          "case": "cache_four",
+          "repeat": 0,
+          "ticks": 244
+        },
+        {
+          "case": "cache_collision",
+          "repeat": 0,
+          "ticks": 122
+        },
+        {
+          "case": "cache_four",
+          "repeat": 1,
+          "ticks": 244
+        },
+        {
+          "case": "cache_collision",
+          "repeat": 1,
+          "ticks": 122
+        }
+      ],
+      "GTHAI386": [
+        {
+          "case": "cache_four",
+          "repeat": 0,
+          "ticks": 220
+        },
+        {
+          "case": "cache_collision",
+          "repeat": 0,
+          "ticks": 110
+        },
+        {
+          "case": "cache_four",
+          "repeat": 1,
+          "ticks": 220
+        },
+        {
+          "case": "cache_collision",
+          "repeat": 1,
+          "ticks": 110
+        }
+      ]
+    }
+  },
+  "cache_after": {
+    "source_sha256": "904ed8c4609dcc7537ccc835c3215e3227b6e4102f2b442bfb05bf4e84b00e37",
+    "include_sha256": "b85455b0a49fe601bd9c9fa4f6052b00790083cae5dd130d0ff1901bf8e0526b",
+    "environment": {
+      "core": "normal",
+      "cpu": "386",
+      "cycles": 10000,
+      "repetitions": 2,
+      "scale": 1,
+      "profile": "cache4",
+      "timer": "BIOS tick",
+      "tick_seconds": 0.05492540115422458
+    },
+    "cases": {
+      "cache_four": 2000,
+      "cache_collision": 2000
+    },
+    "samples": {
+      "GTHAI": [
+        {
+          "case": "cache_four",
+          "repeat": 0,
+          "ticks": 174
+        },
+        {
+          "case": "cache_collision",
+          "repeat": 0,
+          "ticks": 122
+        },
+        {
+          "case": "cache_four",
+          "repeat": 1,
+          "ticks": 174
+        },
+        {
+          "case": "cache_collision",
+          "repeat": 1,
+          "ticks": 122
+        }
+      ],
+      "GTHAI386": [
+        {
+          "case": "cache_four",
+          "repeat": 0,
+          "ticks": 150
+        },
+        {
+          "case": "cache_collision",
+          "repeat": 0,
+          "ticks": 111
+        },
+        {
+          "case": "cache_four",
+          "repeat": 1,
+          "ticks": 150
+        },
+        {
+          "case": "cache_collision",
+          "repeat": 1,
+          "ticks": 111
+        }
+      ]
+    }
+  },
+  "partial_before": {
+    "source_sha256": "90238edc8e3a756328b80a045b97d4e32f33f6250ea46135ebbcbc70229ae81b",
+    "include_sha256": "f854c6944686a83bc31391e04088680fa4482ff5447ff35bdc4b456a3ae84cb6",
+    "environment": {
+      "core": "normal",
+      "cpu": "386",
+      "cycles": 10000,
+      "repetitions": 2,
+      "scale": 1,
+      "profile": "partial",
+      "timer": "BIOS tick",
+      "tick_seconds": 0.05492540115422458
+    },
+    "cases": {
+      "partial_ascii": 2000,
+      "partial_colour": 2000,
+      "partial_thai": 2000,
+      "partial_dense": 2000,
+      "partial_blank": 2000
+    },
+    "samples": {
+      "GTHAI": [
+        {
+          "case": "partial_ascii",
+          "repeat": 0,
+          "ticks": 32
+        },
+        {
+          "case": "partial_colour",
+          "repeat": 0,
+          "ticks": 32
+        },
+        {
+          "case": "partial_thai",
+          "repeat": 0,
+          "ticks": 43
+        },
+        {
+          "case": "partial_dense",
+          "repeat": 0,
+          "ticks": 44
+        },
+        {
+          "case": "partial_blank",
+          "repeat": 0,
+          "ticks": 22
+        },
+        {
+          "case": "partial_ascii",
+          "repeat": 1,
+          "ticks": 32
+        },
+        {
+          "case": "partial_colour",
+          "repeat": 1,
+          "ticks": 32
+        },
+        {
+          "case": "partial_thai",
+          "repeat": 1,
+          "ticks": 43
+        },
+        {
+          "case": "partial_dense",
+          "repeat": 1,
+          "ticks": 44
+        },
+        {
+          "case": "partial_blank",
+          "repeat": 1,
+          "ticks": 22
+        }
+      ],
+      "GTHAI386": [
+        {
+          "case": "partial_ascii",
+          "repeat": 0,
+          "ticks": 27
+        },
+        {
+          "case": "partial_colour",
+          "repeat": 0,
+          "ticks": 27
+        },
+        {
+          "case": "partial_thai",
+          "repeat": 0,
+          "ticks": 37
+        },
+        {
+          "case": "partial_dense",
+          "repeat": 0,
+          "ticks": 39
+        },
+        {
+          "case": "partial_blank",
+          "repeat": 0,
+          "ticks": 17
+        },
+        {
+          "case": "partial_ascii",
+          "repeat": 1,
+          "ticks": 27
+        },
+        {
+          "case": "partial_colour",
+          "repeat": 1,
+          "ticks": 27
+        },
+        {
+          "case": "partial_thai",
+          "repeat": 1,
+          "ticks": 37
+        },
+        {
+          "case": "partial_dense",
+          "repeat": 1,
+          "ticks": 39
+        },
+        {
+          "case": "partial_blank",
+          "repeat": 1,
+          "ticks": 17
+        }
+      ]
+    }
+  },
+  "partial_after": {
+    "source_sha256": "904ed8c4609dcc7537ccc835c3215e3227b6e4102f2b442bfb05bf4e84b00e37",
+    "include_sha256": "b85455b0a49fe601bd9c9fa4f6052b00790083cae5dd130d0ff1901bf8e0526b",
+    "environment": {
+      "core": "normal",
+      "cpu": "386",
+      "cycles": 10000,
+      "repetitions": 2,
+      "scale": 1,
+      "profile": "partial",
+      "timer": "BIOS tick",
+      "tick_seconds": 0.05492540115422458
+    },
+    "cases": {
+      "partial_ascii": 2000,
+      "partial_colour": 2000,
+      "partial_thai": 2000,
+      "partial_dense": 2000,
+      "partial_blank": 2000
+    },
+    "samples": {
+      "GTHAI": [
+        {
+          "case": "partial_ascii",
+          "repeat": 0,
+          "ticks": 32
+        },
+        {
+          "case": "partial_colour",
+          "repeat": 0,
+          "ticks": 32
+        },
+        {
+          "case": "partial_thai",
+          "repeat": 0,
+          "ticks": 43
+        },
+        {
+          "case": "partial_dense",
+          "repeat": 0,
+          "ticks": 44
+        },
+        {
+          "case": "partial_blank",
+          "repeat": 0,
+          "ticks": 22
+        },
+        {
+          "case": "partial_ascii",
+          "repeat": 1,
+          "ticks": 32
+        },
+        {
+          "case": "partial_colour",
+          "repeat": 1,
+          "ticks": 32
+        },
+        {
+          "case": "partial_thai",
+          "repeat": 1,
+          "ticks": 43
+        },
+        {
+          "case": "partial_dense",
+          "repeat": 1,
+          "ticks": 44
+        },
+        {
+          "case": "partial_blank",
+          "repeat": 1,
+          "ticks": 22
+        }
+      ],
+      "GTHAI386": [
+        {
+          "case": "partial_ascii",
+          "repeat": 0,
+          "ticks": 27
+        },
+        {
+          "case": "partial_colour",
+          "repeat": 0,
+          "ticks": 27
+        },
+        {
+          "case": "partial_thai",
+          "repeat": 0,
+          "ticks": 37
+        },
+        {
+          "case": "partial_dense",
+          "repeat": 0,
+          "ticks": 40
+        },
+        {
+          "case": "partial_blank",
+          "repeat": 0,
+          "ticks": 17
+        },
+        {
+          "case": "partial_ascii",
+          "repeat": 1,
+          "ticks": 27
+        },
+        {
+          "case": "partial_colour",
+          "repeat": 1,
+          "ticks": 27
+        },
+        {
+          "case": "partial_thai",
+          "repeat": 1,
+          "ticks": 37
+        },
+        {
+          "case": "partial_dense",
+          "repeat": 1,
+          "ticks": 40
+        },
+        {
+          "case": "partial_blank",
+          "repeat": 1,
+          "ticks": 17
+        }
+      ]
+    }
+  }
+}

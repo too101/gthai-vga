@@ -1,0 +1,641 @@
+{
+  "baseline_version": "3.40",
+  "updated_version": "3.41",
+  "baseline_note": "Uncommitted 3.40 source snapshot; before rows/cache built with current include (version text only). Partial baseline reused from final 3.40 measurement.",
+  "rows_before": {
+    "source_sha256": "904ed8c4609dcc7537ccc835c3215e3227b6e4102f2b442bfb05bf4e84b00e37",
+    "include_sha256": "70400910173d95cf8c4e9077dd02ac8611a359b32e0388ae525af8d8fcaa1114",
+    "environment": {
+      "core": "normal",
+      "cpu": "386",
+      "cycles": 10000,
+      "repetitions": 2,
+      "scale": 1,
+      "profile": "rows",
+      "timer": "BIOS tick",
+      "tick_seconds": 0.05492540115422458
+    },
+    "cases": {
+      "row_ascii_same": 200,
+      "row_ascii_foreground": 200,
+      "row_ascii_background": 200,
+      "row_thai": 200
+    },
+    "samples": {
+      "GTHAI": [
+        {
+          "case": "row_ascii_same",
+          "repeat": 0,
+          "ticks": 84
+        },
+        {
+          "case": "row_ascii_foreground",
+          "repeat": 0,
+          "ticks": 91
+        },
+        {
+          "case": "row_ascii_background",
+          "repeat": 0,
+          "ticks": 102
+        },
+        {
+          "case": "row_thai",
+          "repeat": 0,
+          "ticks": 102
+        },
+        {
+          "case": "row_ascii_same",
+          "repeat": 1,
+          "ticks": 84
+        },
+        {
+          "case": "row_ascii_foreground",
+          "repeat": 1,
+          "ticks": 91
+        },
+        {
+          "case": "row_ascii_background",
+          "repeat": 1,
+          "ticks": 102
+        },
+        {
+          "case": "row_thai",
+          "repeat": 1,
+          "ticks": 102
+        }
+      ],
+      "GTHAI386": [
+        {
+          "case": "row_ascii_same",
+          "repeat": 0,
+          "ticks": 82
+        },
+        {
+          "case": "row_ascii_foreground",
+          "repeat": 0,
+          "ticks": 89
+        },
+        {
+          "case": "row_ascii_background",
+          "repeat": 0,
+          "ticks": 99
+        },
+        {
+          "case": "row_thai",
+          "repeat": 0,
+          "ticks": 96
+        },
+        {
+          "case": "row_ascii_same",
+          "repeat": 1,
+          "ticks": 82
+        },
+        {
+          "case": "row_ascii_foreground",
+          "repeat": 1,
+          "ticks": 89
+        },
+        {
+          "case": "row_ascii_background",
+          "repeat": 1,
+          "ticks": 99
+        },
+        {
+          "case": "row_thai",
+          "repeat": 1,
+          "ticks": 96
+        }
+      ]
+    }
+  },
+  "rows_after": {
+    "source_sha256": "3ff953d10c39d49ea18d4c92935645d8fd84d85b5913e5caac0bd95cd7881772",
+    "include_sha256": "70400910173d95cf8c4e9077dd02ac8611a359b32e0388ae525af8d8fcaa1114",
+    "environment": {
+      "core": "normal",
+      "cpu": "386",
+      "cycles": 10000,
+      "repetitions": 2,
+      "scale": 1,
+      "profile": "rows",
+      "timer": "BIOS tick",
+      "tick_seconds": 0.05492540115422458
+    },
+    "cases": {
+      "row_ascii_same": 200,
+      "row_ascii_foreground": 200,
+      "row_ascii_background": 200,
+      "row_thai": 200
+    },
+    "samples": {
+      "GTHAI": [
+        {
+          "case": "row_ascii_same",
+          "repeat": 0,
+          "ticks": 81
+        },
+        {
+          "case": "row_ascii_foreground",
+          "repeat": 0,
+          "ticks": 88
+        },
+        {
+          "case": "row_ascii_background",
+          "repeat": 0,
+          "ticks": 99
+        },
+        {
+          "case": "row_thai",
+          "repeat": 0,
+          "ticks": 99
+        },
+        {
+          "case": "row_ascii_same",
+          "repeat": 1,
+          "ticks": 81
+        },
+        {
+          "case": "row_ascii_foreground",
+          "repeat": 1,
+          "ticks": 88
+        },
+        {
+          "case": "row_ascii_background",
+          "repeat": 1,
+          "ticks": 99
+        },
+        {
+          "case": "row_thai",
+          "repeat": 1,
+          "ticks": 99
+        }
+      ],
+      "GTHAI386": [
+        {
+          "case": "row_ascii_same",
+          "repeat": 0,
+          "ticks": 80
+        },
+        {
+          "case": "row_ascii_foreground",
+          "repeat": 0,
+          "ticks": 87
+        },
+        {
+          "case": "row_ascii_background",
+          "repeat": 0,
+          "ticks": 97
+        },
+        {
+          "case": "row_thai",
+          "repeat": 0,
+          "ticks": 93
+        },
+        {
+          "case": "row_ascii_same",
+          "repeat": 1,
+          "ticks": 80
+        },
+        {
+          "case": "row_ascii_foreground",
+          "repeat": 1,
+          "ticks": 87
+        },
+        {
+          "case": "row_ascii_background",
+          "repeat": 1,
+          "ticks": 97
+        },
+        {
+          "case": "row_thai",
+          "repeat": 1,
+          "ticks": 93
+        }
+      ]
+    }
+  },
+  "cache_before": {
+    "source_sha256": "904ed8c4609dcc7537ccc835c3215e3227b6e4102f2b442bfb05bf4e84b00e37",
+    "include_sha256": "70400910173d95cf8c4e9077dd02ac8611a359b32e0388ae525af8d8fcaa1114",
+    "environment": {
+      "core": "normal",
+      "cpu": "386",
+      "cycles": 10000,
+      "repetitions": 2,
+      "scale": 1,
+      "profile": "cache4",
+      "timer": "BIOS tick",
+      "tick_seconds": 0.05492540115422458
+    },
+    "cases": {
+      "cache_four": 2000,
+      "cache_collision": 2000,
+      "cache_query": 2000
+    },
+    "samples": {
+      "GTHAI": [
+        {
+          "case": "cache_four",
+          "repeat": 0,
+          "ticks": 174
+        },
+        {
+          "case": "cache_collision",
+          "repeat": 0,
+          "ticks": 122
+        },
+        {
+          "case": "cache_query",
+          "repeat": 0,
+          "ticks": 50
+        },
+        {
+          "case": "cache_four",
+          "repeat": 1,
+          "ticks": 174
+        },
+        {
+          "case": "cache_collision",
+          "repeat": 1,
+          "ticks": 122
+        },
+        {
+          "case": "cache_query",
+          "repeat": 1,
+          "ticks": 50
+        }
+      ],
+      "GTHAI386": [
+        {
+          "case": "cache_four",
+          "repeat": 0,
+          "ticks": 150
+        },
+        {
+          "case": "cache_collision",
+          "repeat": 0,
+          "ticks": 111
+        },
+        {
+          "case": "cache_query",
+          "repeat": 0,
+          "ticks": 44
+        },
+        {
+          "case": "cache_four",
+          "repeat": 1,
+          "ticks": 150
+        },
+        {
+          "case": "cache_collision",
+          "repeat": 1,
+          "ticks": 111
+        },
+        {
+          "case": "cache_query",
+          "repeat": 1,
+          "ticks": 44
+        }
+      ]
+    }
+  },
+  "cache_after": {
+    "source_sha256": "3ff953d10c39d49ea18d4c92935645d8fd84d85b5913e5caac0bd95cd7881772",
+    "include_sha256": "70400910173d95cf8c4e9077dd02ac8611a359b32e0388ae525af8d8fcaa1114",
+    "environment": {
+      "core": "normal",
+      "cpu": "386",
+      "cycles": 10000,
+      "repetitions": 2,
+      "scale": 1,
+      "profile": "cache4",
+      "timer": "BIOS tick",
+      "tick_seconds": 0.05492540115422458
+    },
+    "cases": {
+      "cache_four": 2000,
+      "cache_collision": 2000,
+      "cache_query": 2000
+    },
+    "samples": {
+      "GTHAI": [
+        {
+          "case": "cache_four",
+          "repeat": 0,
+          "ticks": 158
+        },
+        {
+          "case": "cache_collision",
+          "repeat": 0,
+          "ticks": 79
+        },
+        {
+          "case": "cache_query",
+          "repeat": 0,
+          "ticks": 39
+        },
+        {
+          "case": "cache_four",
+          "repeat": 1,
+          "ticks": 158
+        },
+        {
+          "case": "cache_collision",
+          "repeat": 1,
+          "ticks": 79
+        },
+        {
+          "case": "cache_query",
+          "repeat": 1,
+          "ticks": 39
+        }
+      ],
+      "GTHAI386": [
+        {
+          "case": "cache_four",
+          "repeat": 0,
+          "ticks": 139
+        },
+        {
+          "case": "cache_collision",
+          "repeat": 0,
+          "ticks": 70
+        },
+        {
+          "case": "cache_query",
+          "repeat": 0,
+          "ticks": 35
+        },
+        {
+          "case": "cache_four",
+          "repeat": 1,
+          "ticks": 139
+        },
+        {
+          "case": "cache_collision",
+          "repeat": 1,
+          "ticks": 70
+        },
+        {
+          "case": "cache_query",
+          "repeat": 1,
+          "ticks": 35
+        }
+      ]
+    }
+  },
+  "partial_before": {
+    "source_sha256": "904ed8c4609dcc7537ccc835c3215e3227b6e4102f2b442bfb05bf4e84b00e37",
+    "include_sha256": "b85455b0a49fe601bd9c9fa4f6052b00790083cae5dd130d0ff1901bf8e0526b",
+    "environment": {
+      "core": "normal",
+      "cpu": "386",
+      "cycles": 10000,
+      "repetitions": 2,
+      "scale": 1,
+      "profile": "partial",
+      "timer": "BIOS tick",
+      "tick_seconds": 0.05492540115422458
+    },
+    "cases": {
+      "partial_ascii": 2000,
+      "partial_colour": 2000,
+      "partial_thai": 2000,
+      "partial_dense": 2000,
+      "partial_blank": 2000
+    },
+    "samples": {
+      "GTHAI": [
+        {
+          "case": "partial_ascii",
+          "repeat": 0,
+          "ticks": 32
+        },
+        {
+          "case": "partial_colour",
+          "repeat": 0,
+          "ticks": 32
+        },
+        {
+          "case": "partial_thai",
+          "repeat": 0,
+          "ticks": 43
+        },
+        {
+          "case": "partial_dense",
+          "repeat": 0,
+          "ticks": 44
+        },
+        {
+          "case": "partial_blank",
+          "repeat": 0,
+          "ticks": 22
+        },
+        {
+          "case": "partial_ascii",
+          "repeat": 1,
+          "ticks": 32
+        },
+        {
+          "case": "partial_colour",
+          "repeat": 1,
+          "ticks": 32
+        },
+        {
+          "case": "partial_thai",
+          "repeat": 1,
+          "ticks": 43
+        },
+        {
+          "case": "partial_dense",
+          "repeat": 1,
+          "ticks": 44
+        },
+        {
+          "case": "partial_blank",
+          "repeat": 1,
+          "ticks": 22
+        }
+      ],
+      "GTHAI386": [
+        {
+          "case": "partial_ascii",
+          "repeat": 0,
+          "ticks": 27
+        },
+        {
+          "case": "partial_colour",
+          "repeat": 0,
+          "ticks": 27
+        },
+        {
+          "case": "partial_thai",
+          "repeat": 0,
+          "ticks": 37
+        },
+        {
+          "case": "partial_dense",
+          "repeat": 0,
+          "ticks": 40
+        },
+        {
+          "case": "partial_blank",
+          "repeat": 0,
+          "ticks": 17
+        },
+        {
+          "case": "partial_ascii",
+          "repeat": 1,
+          "ticks": 27
+        },
+        {
+          "case": "partial_colour",
+          "repeat": 1,
+          "ticks": 27
+        },
+        {
+          "case": "partial_thai",
+          "repeat": 1,
+          "ticks": 37
+        },
+        {
+          "case": "partial_dense",
+          "repeat": 1,
+          "ticks": 40
+        },
+        {
+          "case": "partial_blank",
+          "repeat": 1,
+          "ticks": 17
+        }
+      ]
+    }
+  },
+  "partial_after": {
+    "source_sha256": "3ff953d10c39d49ea18d4c92935645d8fd84d85b5913e5caac0bd95cd7881772",
+    "include_sha256": "70400910173d95cf8c4e9077dd02ac8611a359b32e0388ae525af8d8fcaa1114",
+    "environment": {
+      "core": "normal",
+      "cpu": "386",
+      "cycles": 10000,
+      "repetitions": 2,
+      "scale": 1,
+      "profile": "partial",
+      "timer": "BIOS tick",
+      "tick_seconds": 0.05492540115422458
+    },
+    "cases": {
+      "partial_ascii": 2000,
+      "partial_colour": 2000,
+      "partial_thai": 2000,
+      "partial_dense": 2000,
+      "partial_blank": 2000
+    },
+    "samples": {
+      "GTHAI": [
+        {
+          "case": "partial_ascii",
+          "repeat": 0,
+          "ticks": 32
+        },
+        {
+          "case": "partial_colour",
+          "repeat": 0,
+          "ticks": 32
+        },
+        {
+          "case": "partial_thai",
+          "repeat": 0,
+          "ticks": 39
+        },
+        {
+          "case": "partial_dense",
+          "repeat": 0,
+          "ticks": 43
+        },
+        {
+          "case": "partial_blank",
+          "repeat": 0,
+          "ticks": 22
+        },
+        {
+          "case": "partial_ascii",
+          "repeat": 1,
+          "ticks": 32
+        },
+        {
+          "case": "partial_colour",
+          "repeat": 1,
+          "ticks": 32
+        },
+        {
+          "case": "partial_thai",
+          "repeat": 1,
+          "ticks": 39
+        },
+        {
+          "case": "partial_dense",
+          "repeat": 1,
+          "ticks": 43
+        },
+        {
+          "case": "partial_blank",
+          "repeat": 1,
+          "ticks": 22
+        }
+      ],
+      "GTHAI386": [
+        {
+          "case": "partial_ascii",
+          "repeat": 0,
+          "ticks": 27
+        },
+        {
+          "case": "partial_colour",
+          "repeat": 0,
+          "ticks": 27
+        },
+        {
+          "case": "partial_thai",
+          "repeat": 0,
+          "ticks": 35
+        },
+        {
+          "case": "partial_dense",
+          "repeat": 0,
+          "ticks": 38
+        },
+        {
+          "case": "partial_blank",
+          "repeat": 0,
+          "ticks": 17
+        },
+        {
+          "case": "partial_ascii",
+          "repeat": 1,
+          "ticks": 27
+        },
+        {
+          "case": "partial_colour",
+          "repeat": 1,
+          "ticks": 27
+        },
+        {
+          "case": "partial_thai",
+          "repeat": 1,
+          "ticks": 35
+        },
+        {
+          "case": "partial_dense",
+          "repeat": 1,
+          "ticks": 38
+        },
+        {
+          "case": "partial_blank",
+          "repeat": 1,
+          "ticks": 17
+        }
+      ]
+    }
+  }
+}

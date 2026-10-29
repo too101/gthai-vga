@@ -14,7 +14,7 @@ parser.add_argument('--scale',type=int,default=1,help='Multiply loop counts for 
 parser.add_argument('--source',type=Path,help='Alternate source snapshot for before/after comparisons')
 parser.add_argument('--work-dir',type=Path,default=Path('work/benchmark'))
 parser.add_argument('--target',choices=('both','GTHAI','GTHAI386'),default='both')
-parser.add_argument('--profile',choices=('glyph','screen','blanks','rows','partial','frames','thai8'),default='glyph')
+parser.add_argument('--profile',choices=('glyph','screen','blanks','rows','partial','frames','thai8','cache4'),default='glyph')
 args=parser.parse_args()
 if args.cycles<=0 or not 1<=args.repetitions<=20 or not 1<=args.scale<=20: parser.error('Invalid cycles, repetitions, or scale')
 root=Path(__file__).resolve().parents[1]
@@ -66,7 +66,7 @@ loops=[
  """         MOV SI,OFFSET BENCH_THAI
          CALL DO_MSG
 """]
-if args.profile in ('screen','blanks','rows','partial','frames','thai8'):
+if args.profile in ('screen','blanks','rows','partial','frames','thai8','cache4'):
     cases=[('screen_idle',5000*args.scale),('screen_redraw',500*args.scale)]
     setup="""
          MOV WORD PTR [VID_SEG],0B800H
@@ -134,7 +134,7 @@ if args.profile=='rows':
     cases=[(name,200*args.scale) for name in ('row_ascii_same','row_ascii_foreground','row_ascii_background','row_thai')]
     loops=[dirty+call]*len(cases)
 if args.profile=='thai8':
-    cases=[(name,200*args.scale) for name in ('row_ascii_same','row_thai')]
+    cases=[(name,200*args.scale) for name in ('row_ascii_same','row_thai','blank_long','blank_mixed','blank_alternating')]
     loops=[dirty+call.replace('UPDATE_SCREEN_THAI_25','UPDATE_SCREEN_THAI_8')]*len(cases)
     body=body.replace('MOV BYTE PTR [CURRENT_MODE],0','MOV BYTE PTR [DISPMODE],1\n         MOV BYTE PTR [CURRENT_MODE],0')
 if args.profile=='partial':
@@ -146,6 +146,32 @@ if args.profile=='partial':
         mutate="         PUSH ES\n         MOV AX,0B800H\n         MOV ES,AX\n"
         mutate+=''.join(f"         XOR WORD PTR ES:[{offset}],{mask}\n" for offset in offsets)
         loops.append(mutate+"         POP ES\n"+call)
+if args.profile=='cache4':
+    cases=[('cache_four',2000*args.scale),('cache_collision',2000*args.scale),('cache_query',2000*args.scale)]
+    loops=[]
+    for rows in ((3,12,21,22),(3,7),(12,)):
+        code=''
+        for row in rows:
+            code+=f'''         PUSH ES
+         MOV AX,0B800H
+         MOV ES,AX
+         XOR WORD PTR ES:[{row*160+82}],12
+         POP ES
+'''+call
+        if rows==(12,):
+            code='''         PUSH AX
+         PUSH BX
+         PUSH ES
+         MOV AX,8000H
+         XOR BX,BX
+         PUSHF
+         PUSH CS
+         CALL CSTM_VID
+         POP ES
+         POP BX
+         POP AX
+'''+code
+        loops.append(code)
 if args.profile=='frames':
     cases=[(name,200000*args.scale) for name in ('frame_shade','frame_vertical')]
     loops=['''         PUSH DS
@@ -158,7 +184,7 @@ if args.profile=='frames':
 for index,(name,iterations) in enumerate(cases):
     inner=min(50000,iterations)
     assert iterations%inner==0
-    if args.profile in ('blanks','rows','partial','frames','thai8'):
+    if args.profile in ('blanks','rows','partial','frames','thai8','cache4'):
         body+="""         MOV AX,0B800H
          MOV ES,AX
          XOR DI,DI
@@ -170,7 +196,7 @@ for index,(name,iterations) in enumerate(cases):
             body+=f"         MOV AX,{('0741H' if name in ('ascii_control','row_ascii_same','partial_ascii','partial_colour','partial_dense') else '0720H')}\n         REP STOSW\n"
         elif name=='row_ascii_foreground':
             body+=f"         MOV AX,0141H\nBENCH_FILL_{index}:\n         STOSW\n         INC AH\n         AND AH,0FH\n         LOOP BENCH_FILL_{index}\n"
-        elif name in ('row_thai','partial_thai'):
+        elif name in ('row_thai','partial_thai','cache_four','cache_collision','cache_query'):
             body+=f"""         XOR BX,BX
 BENCH_FILL_{index}:
          MOV BP,BX
@@ -195,7 +221,7 @@ BENCH_FILL_STORE_{index}:
          INC BX
          LOOP BENCH_FILL_{index}
 """
-        expected={'frame_shade':'07B0H','frame_vertical':'07B3H','blank_mixed':'0741H','ascii_control':'0741H','row_ascii_same':'0741H','row_ascii_foreground':'0141H','row_ascii_background':'0741H','row_thai':'07A1H','partial_thai':'07A1H','partial_ascii':'0741H','partial_colour':'0741H','partial_dense':'0741H'}.get(name,'0720H')
+        expected={'cache_query':'07A1H','cache_four':'07A1H','cache_collision':'07A1H','frame_shade':'07B0H','frame_vertical':'07B3H','blank_mixed':'0741H','ascii_control':'0741H','row_ascii_same':'0741H','row_ascii_foreground':'0141H','row_ascii_background':'0741H','row_thai':'07A1H','partial_thai':'07A1H','partial_ascii':'0741H','partial_colour':'0741H','partial_dense':'0741H'}.get(name,'0720H')
         body+=f"""         CMP WORD PTR ES:[0],{expected}
          JE BENCH_FILL_OK_{index}
          JMP BENCH_ERROR
@@ -203,7 +229,7 @@ BENCH_FILL_OK_{index}:
          MOV AX,0A000H
          MOV ES,AX
 """
-    if args.profile=='partial': body+=dirty+call
+    if args.profile in ('partial','cache4'): body+=dirty+call
     body+=f"         MOV WORD PTR [BENCH_CASE],{index}\n"
     body+="""         CALL BENCH_SYNC
          MOV [BENCH_BEGIN],AX
