@@ -37,7 +37,7 @@ The revised fonts combine and adapt glyphs from **AxTHAI**, **ThaiPro**, and **A
 
 Display options include English, Thai 8-line mode without automatic vowel/tone composition, and Thai 25-line mode with composition. The settings dialog supports the taller fonts, and the Thai cursor spans the full character height.
 
-Both executables provide the same features and fonts; load only one at a time. Version 3.33 shrinks the resident driver by 867 bytes by sharing the dialog drawing code without changing its output. Version 3.32 fixes popup dialogs inheriting interrupted batch state and protects individual VGA glyph updates from interrupts. Version 3.31 reduces repeated VGA register setup during Thai 25-line screen updates in both builds, while the 386 build also compares text using `CMPSD`. The 386 build remains a 16-bit DOS real-mode program, uses 32-bit instructions for glyph copying and composition, and preserves the interrupted program’s upper register bits. VGA drawing and latch scrolling remain byte-based. In the version 3.30 DOSBox-X comparison on the same emulated 386, it reduced Thai composition time by **23.1%** and composed Thai drawing time by **9.2%**. These are emulator microbenchmarks, not real-hardware measurements; see the [benchmark report](docs/BENCHMARK.md).
+Both executables provide the same features and fonts; load only one at a time. GTHAI386.COM additionally uses 32-bit moves and ORs for glyph copying and vowel/tone composition, `REPE CMPSD` for the changed-screen check, and a single `SHR reg,4` in colour setup; the rest, including all VGA output, is identical. Version 3.33 shrinks the resident driver by 867 bytes by sharing the dialog drawing code without changing its output. Version 3.32 fixes popup dialogs inheriting interrupted batch state and protects individual VGA glyph updates from interrupts. Version 3.31 reduces repeated VGA register setup during Thai 25-line screen updates in both builds, while the 386 build also compares text using `CMPSD`. The 386 build remains a 16-bit DOS real-mode program, uses 32-bit instructions for glyph copying and composition, and preserves the interrupted program’s upper register bits. VGA drawing and latch scrolling remain byte-based. In the version 3.30 DOSBox-X comparison on the same emulated 386, it reduced Thai composition time by **23.1%** and composed Thai drawing time by **9.2%**. These are emulator microbenchmarks, not real-hardware measurements; see the [benchmark report](docs/BENCHMARK.md).
 
 ## ความสามารถ
 
@@ -81,7 +81,7 @@ Both executables provide the same features and fonts; load only one at a time. V
 | โปรแกรม | CPU | ส่วนผสมฟอนต์ |
 |---|---|---|
 | `output/GTHAI.COM` | 8086 ขึ้นไป | คำสั่ง 16-bit |
-| `output/GTHAI386.COM` | 386 ขึ้นไป | ใช้ EAX ผสมครั้งละ 32-bit |
+| `output/GTHAI386.COM` | 386 ขึ้นไป | ใช้ EAX คัดลอกและผสม glyph ครั้งละ 32-bit และเทียบจอครั้งละ 2 ช่อง |
 
 ทั้งสองรุ่นมีความสามารถ ฟอนต์ และการตั้งค่าเหมือนกัน เลือก `GTHAI.COM` สำหรับ 8086/8088/186/286 หรือเลือก `GTHAI386.COM` สำหรับ 386 ขึ้นไปที่ต้องการส่วนผสมฟอนต์ที่เร็วขึ้น ทั้งสองรุ่นต้องใช้การ์ด VGA
 
@@ -172,7 +172,14 @@ python tests/run_all.py
 
 ## ความแตกต่างด้านประสิทธิภาพของรุ่น 386
 
-รุ่น 386 ใช้ DWORD ในการคัดลอกและ OR ฟอนต์ครั้งละ 4 แถว พร้อมคำสั่งเลื่อนบิต 4 ตำแหน่งในขั้นเตรียมสี รุ่นปกติยังใช้ WORD และคำสั่ง 8086 ทั้งหมด
+`GTHAI386.COM` สร้างจาก source เดียวกับ `GTHAI.COM` แต่เลือกคำสั่ง 386 ในจุดที่ช่วยได้จริง มี 4 จุด:
+
+- **คัดลอก glyph (`COPY_GLYPH19`)** ใช้ EAX คัดลอกครั้งละ 4 แถว ส่วนรุ่นปกติคัดลอกครั้งละ 2 แถวด้วย AX
+- **ผสมสระและวรรณยุกต์ (`OR_GLYPH_ROWS`)** ใช้ `OR` แบบ DWORD ครั้งละ 4 แถว
+- **ตรวจว่าจอเปลี่ยนหรือไม่ (`COMPARE_TEXT386`)** ใช้ `REPE CMPSD` เทียบข้อความครั้งละ 2 ช่อง แล้วถอยมาเทียบระดับ WORD เพื่อหาช่องแรกที่ต่างอย่างแม่นยำ รุ่นปกติใช้ `REPZ CMPSW`
+- **เตรียมสีพื้นหลัง** ใช้ `SHR reg,4` คำสั่งเดียวแทนการเลื่อนบิตทีละ 1 ตำแหน่ง 4 ครั้ง (`VGA_GLYPH_SETUP`, `L6289H`)
+
+รุ่น 386 รักษาค่า EAX ส่วนบนด้วย `PUSH EAX`/`POP EAX` เพราะโปรแกรมที่เรียกผ่าน interrupt อาจใช้ค่านั้น ยังทำงานใน DOS real mode แบบ 16-bit และตรวจ CPU ก่อนติดตั้ง ส่วนที่ไม่ต่างกัน ได้แก่ การเขียน VGA ด้วย write mode 3 การเลื่อนจอ การส่งข้อมูลไปพอร์ต VGA และขนาดโปรแกรม (ต่างกันเพียงไม่กี่สิบไบต์) รุ่นปกติยังใช้คำสั่ง 8086 ทั้งหมด
 
 | รูทีน | GTHAI | GTHAI386 |
 |---|---:|---:|
@@ -183,6 +190,8 @@ python tests/run_all.py
 ตัวเลขมาจาก trace รูทีนใน COM รวมการคืน register แต่ไม่ใช่ผลวัดเวลา ความเร็วจริงขึ้นกับ CPU และบัสของเครื่อง รุ่น 3.31 เพิ่มการใช้สถานะ VGA ร่วมระหว่างวาดในทั้งสอง executable และใช้ CMPSD ตรวจจอเฉพาะรุ่น 386
 
 ผลวัดรุ่น 3.30 ด้วย DOSBox-X บน CPU จำลอง 386 และค่า cycles เท่ากัน: รุ่น 386 ใช้เวลาผสมฟอนต์ลดลง 23.1% วาดข้อความไทยลดลง 9.2% และวาดอังกฤษลดลง 2.5% ดู [วิธีทดสอบและผลละเอียด](docs/BENCHMARK.md) ตัวเลขนี้เป็นผลในตัวจำลอง ยังไม่ได้วัดบนเครื่องจริง
+
+ผลวัดสถานการณ์ใช้งานจริงของรุ่น 3.32 ใน DOSBox-X (profile `scenarios`) รุ่น 386 เทียบกับรุ่นปกติ: แก้ตัวอักษรหนึ่งช่องแล้วอัปเดตจอใช้เวลาลดลง 50.0% ขยับ cursor ลดลง 46.2% วาดใหม่ทั้งจอลดลงเพียง 2.1% (ไม่ว่าเนื้อหาเป็นหน้าจอแบบ Norton Commander ข้อความไทย หรือจอว่าง) และเลื่อนจอไม่ต่างกัน เหตุผลคือการอัปเดตเล็กๆ เสียเวลาไปกับการเทียบจอเดิมซึ่งรุ่น 386 ทำได้ครึ่งเดียว ส่วนการวาดทั้งจอเสียเวลาไปกับการเขียนไบต์ลง VGA ซึ่งสองรุ่นเหมือนกัน ผลนี้มาจากตัวจำลอง ไม่ได้วัดบนเครื่องจริง ดู [docs/BENCHMARK.md](docs/BENCHMARK.md)
 
 ผลเทียบก่อน–หลังรุ่น 3.31 ใน DOSBox-X: วาดใหม่ทั้งจอใช้เวลาลดลง 6.1% สำหรับ GTHAI และ 6.3% สำหรับ GTHAI386 ส่วนตรวจจอเดิมในรุ่น 386 ลดลง 48.9% ดูเงื่อนไขใน [รายงานทดสอบ](docs/BENCHMARK.md)
 
