@@ -478,44 +478,10 @@ PANEL PROC  NEAR    ;POP UP CONTROL PANEL
 ;----------------------------------------------------------------------
 ; Show BBS message
 ;----------------------------------------------------------------------  
-         MOV   AX,BBSMSG_SHADOW
-         CALL  VGA_SET_SHADOW_COLOR
-         MOV   AX,BBSMSG_EDGE
-         CALL  VGA_SET_EDGE_COLOR
-         MOV   CX,WORD PTR [BBSMSG_COLUMN]
-         MOV   DX,BBSMSG_ROW
-         ADD   CX,[MENU_LEFT_COLUMN]
-         ADD   DX,[MENU_TOP_ROW]
-         CALL  VGA_CURSOR_CALC
-         MOV   CX,(BBSMSG_LEN*8)+2
-         MOV   DX,0
-         CALL  DRAW_LINE
-         MOV   CX,0
-         MOV   DX,CHAR_HEIGHT
-         CALL  DRAW_LINE
-         MOV   AX,BBSMSG_SHADOW
-         CALL  VGA_SET_EDGE_COLOR
-         MOV   CX,WORD PTR [BBSMSG_COLUMN]
-         ADD  CX,(BBSMSG_LEN*8)+1
-         MOV   DX,BBSMSG_ROW+CHAR_HEIGHT
-         ADD   CX,[MENU_LEFT_COLUMN]
-         ADD   DX,[MENU_TOP_ROW]
-         CALL  VGA_CURSOR_CALC
-         MOV   CX,-((BBSMSG_LEN*8)+1)         ;-113
-         MOV   DX,0
-         CALL  DRAW_LINE
-         MOV   CX,0
-         MOV   DX,-CHAR_HEIGHT
-         CALL  DRAW_LINE
-         MOV   [TEXT_COLOR],BBSMSG_TEXT_COLOR
-         MOV   CX,WORD PTR [BBSMSG_COLUMN]
-         INC   CX
-         MOV   DX,BBSMSG_ROW+1                  ;226
-         ADD   CX,[MENU_LEFT_COLUMN]
-         ADD   DX,[MENU_TOP_ROW]
-         CALL  VGA_CURSOR_CALC
-         MOV   SI,OFFSET MSG_BBS
-         CALL  DO_MSG
+         MOV   AX,WORD PTR [BBSMSG_COLUMN]
+         MOV   WORD PTR [BOX_BBS+BOX_X],AX
+         MOV   SI,OFFSET BOX_BBS
+         CALL  DRAW_BOX
 
          MOV   AX,BLACK
          CALL  VGA_SET_SHADOW_COLOR
@@ -586,330 +552,121 @@ PANEL PROC  NEAR    ;POP UP CONTROL PANEL
 ;----------------------------------------------------------------------  
 ; Show SETTING button
 ;----------------------------------------------------------------------  
-         MOV   AX,MSG_SETTING_SHADOW
-         CALL  VGA_SET_SHADOW_COLOR
-         MOV   AX,MSG_SETTING_EDGE
-         CALL  VGA_SET_EDGE_COLOR
-         MOV   CX,MSG_SETTING_X
-         MOV   DX,MSG_SETTING_Y
-         ADD   CX,[MENU_LEFT_COLUMN]
-         ADD   DX,[MENU_TOP_ROW]
-         CALL  VGA_CURSOR_CALC
-         MOV   CX,(MSG_SETTING_LEN*8)+2
-         MOV   DX,0
-         CALL  DRAW_LINE
-         MOV   CX,0
-         MOV   DX,CHAR_HEIGHT
-         CALL  DRAW_LINE
-         MOV   AX,MSG_SETTING_SHADOW
-         CALL  VGA_SET_EDGE_COLOR
-         MOV   CX,MSG_SETTING_X+(MSG_SETTING_LEN*8)+1
-         MOV   DX,MSG_SETTING_Y+CHAR_HEIGHT
-         ADD   CX,[MENU_LEFT_COLUMN]
-         ADD   DX,[MENU_TOP_ROW]
-         CALL  VGA_CURSOR_CALC
-         MOV   CX,-((MSG_SETTING_LEN*8)+1)
-         MOV   DX,0
-         CALL  DRAW_LINE
-         MOV   CX,0
-         MOV   DX,-CHAR_HEIGHT
-         CALL  DRAW_LINE
-         MOV   [TEXT_COLOR],MSG_SETTING_TEXT_COLOR
-         MOV   CX,MSG_SETTING_X+1
-         MOV   DX,MSG_SETTING_Y+1
-         ADD   CX,[MENU_LEFT_COLUMN]
-         ADD   DX,[MENU_TOP_ROW]
-         CALL  VGA_CURSOR_CALC
-         MOV   SI,OFFSET MSG_SETTING
-         CALL  DO_MSG
+         MOV   SI,OFFSET BOX_SETTING
+         CALL  DRAW_BOX
 ;----------------------------------------------------------------------  
 ; Show HELPING button
 ;----------------------------------------------------------------------
-         MOV   AX,MSG_HELPING_SHADOW
-         CALL  VGA_SET_SHADOW_COLOR
-         MOV   AX,MSG_HELPING_EDGE
-         CALL  VGA_SET_EDGE_COLOR
-         MOV   CX,MSG_HELPING_X
-         MOV   DX,MSG_HELPING_Y
-         ADD   CX,[MENU_LEFT_COLUMN]
-         ADD   DX,[MENU_TOP_ROW]
-         CALL  VGA_CURSOR_CALC
-         MOV   CX,(MSG_HELPING_LEN*8)+2
-         MOV   DX,0
-         CALL  DRAW_LINE
-         MOV   CX,0
-         MOV   DX,CHAR_HEIGHT
-         CALL  DRAW_LINE
-         MOV   AX,MSG_HELPING_SHADOW
-         CALL  VGA_SET_EDGE_COLOR
-         MOV   CX,MSG_HELPING_X+(MSG_HELPING_LEN*8)+1
-         MOV   DX,MSG_HELPING_Y+CHAR_HEIGHT
-         ADD   CX,[MENU_LEFT_COLUMN]
-         ADD   DX,[MENU_TOP_ROW]
-         CALL  VGA_CURSOR_CALC
-         MOV   CX,-((MSG_HELPING_LEN*8)+1)
-         MOV   DX,0
-         CALL  DRAW_LINE
-         MOV   CX,0
-         MOV   DX,-CHAR_HEIGHT
-         CALL  DRAW_LINE
-         MOV   [TEXT_COLOR],MSG_HELPING_TEXT_COLOR
-         MOV   CX,MSG_HELPING_X+1
-         MOV   DX,MSG_HELPING_Y+1
-         ADD   CX,[MENU_LEFT_COLUMN]
-         ADD   DX,[MENU_TOP_ROW]
-         CALL  VGA_CURSOR_CALC
-         MOV   SI,OFFSET PANEL_MSG_HELPING
-         CALL  DO_MSG
+         MOV   SI,OFFSET BOX_HELPING
+         CALL  DRAW_BOX
 ;----------------------------------------------------------------------  
 ; Show VERSION button
 ;----------------------------------------------------------------------
-         MOV   AX,BLACK
-         CALL  VGA_SET_SHADOW_COLOR
-         MOV   AX,BRIGHT_WHITE
-         CALL  VGA_SET_EDGE_COLOR
-         MOV   CX,MSG_VERSION_X
-         MOV   DX,MSG_VERSION_Y
-         ADD   CX,[MENU_LEFT_COLUMN]
-         ADD   DX,[MENU_TOP_ROW]
-         CALL  VGA_CURSOR_CALC
-         MOV   CX,(P_MSG_VERSION_LEN*8)+2
-         MOV   DX,0
-         CALL  DRAW_LINE
-         MOV   CX,0
-         MOV   DX,CHAR_HEIGHT
-         CALL  DRAW_LINE
-         MOV   AX,MSG_VERSION_SHADOW
-         CALL  VGA_SET_EDGE_COLOR
-         MOV   CX,MSG_VERSION_X+(P_MSG_VERSION_LEN*8)+1
-         MOV   DX,MSG_VERSION_Y+CHAR_HEIGHT
-         ADD   CX,[MENU_LEFT_COLUMN]
-         ADD   DX,[MENU_TOP_ROW]
-         CALL  VGA_CURSOR_CALC
-         MOV   CX,-((P_MSG_VERSION_LEN*8)+1)
-         MOV   DX,0
-         CALL  DRAW_LINE
-         MOV   CX,0
-         MOV   DX,-CHAR_HEIGHT
-         CALL  DRAW_LINE
-         MOV   [TEXT_COLOR],MSG_VERSION_TEXT_COLOR
-         MOV   CX,MSG_VERSION_X+1
-         MOV   DX,MSG_VERSION_Y+1
-         ADD   CX,[MENU_LEFT_COLUMN]
-         ADD   DX,[MENU_TOP_ROW]
-         CALL  VGA_CURSOR_CALC
-         MOV   SI,OFFSET PANEL_MSG_VERSION
-         CALL  DO_MSG
+         MOV   SI,OFFSET BOX_VERSION
+         CALL  DRAW_BOX
 
 ;----------------------------------------------------------------------
 ; Show F2 - SAVE OPTIONS button
 ;----------------------------------------------------------------------  
-         MOV   AX,MSG_F2_SHADOW
-         CALL  VGA_SET_SHADOW_COLOR
-         MOV   AX,MSG_F2_EDGE
-         CALL  VGA_SET_EDGE_COLOR
-         MOV   CX,MSG_F2_X
-         MOV   DX,MSG_F2_Y
-         ADD   CX,[MENU_LEFT_COLUMN]
-         ADD   DX,[MENU_TOP_ROW]
-         CALL  VGA_CURSOR_CALC
-         MOV   CX,(MSG_F2_LEN*8)+2
-         MOV   DX,0
-         CALL  DRAW_LINE
-         MOV   CX,0
-         MOV   DX,CHAR_HEIGHT
-         CALL  DRAW_LINE
-         MOV   AX,MSG_F2_SHADOW
-         CALL  VGA_SET_EDGE_COLOR
-         MOV   CX,MSG_F2_X+(MSG_F2_LEN*8)+1
-         MOV   DX,MSG_F2_Y+CHAR_HEIGHT
-         ADD   CX,[MENU_LEFT_COLUMN]
-         ADD   DX,[MENU_TOP_ROW]
-         CALL  VGA_CURSOR_CALC
-         MOV   CX,-((MSG_F2_LEN*8)+1)
-         MOV   DX,0
-         CALL  DRAW_LINE
-         MOV   CX,0
-         MOV   DX,-CHAR_HEIGHT
-         CALL  DRAW_LINE
-         MOV   [TEXT_COLOR],MSG_F2_TEXT_COLOR
-         MOV   CX,MSG_F2_X+1
-         MOV   DX,MSG_F2_Y+1
-         ADD   CX,[MENU_LEFT_COLUMN]
-         ADD   DX,[MENU_TOP_ROW]
-         CALL  VGA_CURSOR_CALC
-         MOV   SI,OFFSET PANEL_MSG_F2
-         CALL  DO_MSG
+         MOV   SI,OFFSET BOX_F2
+         CALL  DRAW_BOX
 ;----------------------------------------------------------------------
 ; Show ESC button
 ;----------------------------------------------------------------------  
-         MOV   AX,BLACK 
-         CALL  VGA_SET_SHADOW_COLOR
-         MOV   AX,BRIGHT_WHITE  
-         CALL  VGA_SET_EDGE_COLOR
-         MOV   CX,ESC_MSG_X
-         MOV   DX,ESC_MSG_Y
-         ADD   CX,[MENU_LEFT_COLUMN]
-         ADD   DX,[MENU_TOP_ROW]
-         CALL  VGA_CURSOR_CALC
-         MOV   CX,(P_ESC_MSG_LEN*8)+2
-         MOV   DX,0
-         CALL  DRAW_LINE
-         MOV   CX,0
-         MOV   DX,CHAR_HEIGHT
-         CALL  DRAW_LINE
-         MOV   AX,BLACK
-         CALL  VGA_SET_EDGE_COLOR
-         MOV   CX,ESC_MSG_X+(P_ESC_MSG_LEN*8)+1
-         MOV   DX,ESC_MSG_Y+CHAR_HEIGHT
-         ADD   CX,[MENU_LEFT_COLUMN]
-         ADD   DX,[MENU_TOP_ROW]
-         CALL  VGA_CURSOR_CALC
-         MOV   CX,-((P_ESC_MSG_LEN*8)+1)
-         MOV   DX,0
-         CALL  DRAW_LINE
-         MOV   CX,0
-         MOV   DX,-CHAR_HEIGHT
-         CALL  DRAW_LINE
-         MOV   [TEXT_COLOR],(WHITE_BG + BLACK)
-         MOV   CX,ESC_MSG_X+1
-         MOV   DX,ESC_MSG_Y+1
-         ADD   CX,[MENU_LEFT_COLUMN]
-         ADD   DX,[MENU_TOP_ROW]
-         CALL  VGA_CURSOR_CALC
-         MOV   SI,OFFSET PANEL_MSG_ESC
-         CALL  DO_MSG
+         MOV   SI,OFFSET BOX_ESC
+         CALL  DRAW_BOX
 ;----------------------------------------------------------------------
 ; Display KEYTICK message
 ;----------------------------------------------------------------------  
          MOV   [TEXT_COLOR],PANEL_TEXT_COLOR
          MOV   CX,MSG_KEYTICK_X
          MOV   DX,MSG_KEYTICK_Y
-         ADD   CX,[MENU_LEFT_COLUMN]
-         ADD   DX,[MENU_TOP_ROW]
-         CALL  VGA_CURSOR_CALC
          MOV   SI,OFFSET MSG_KEYTICK
-         CALL  DO_MSG
+         CALL  SHOW_MSG
 ;----------------------------------------------------------------------  
 ; Display CTRL-TICK message
 ;----------------------------------------------------------------------
          MOV   CX,MSG_CTRLTICK_X
          MOV   DX,MSG_CTRLTICK_Y
-         ADD   CX,[MENU_LEFT_COLUMN]
-         ADD   DX,[MENU_TOP_ROW]
-         CALL  VGA_CURSOR_CALC
          MOV   SI,OFFSET MSG_CTRLTICK
-         CALL  DO_MSG
+         CALL  SHOW_MSG
 ;----------------------------------------------------------------------  
 ; Display ALT-TICK message
 ;----------------------------------------------------------------------
          MOV   CX,MSG_ALTTICK_X
          MOV   DX,MSG_ALTTICK_Y
-         ADD   CX,[MENU_LEFT_COLUMN]
-         ADD   DX,[MENU_TOP_ROW]
-         CALL  VGA_CURSOR_CALC
          MOV   SI,OFFSET MSG_ALTTICK
-         CALL  DO_MSG
+         CALL  SHOW_MSG
 ;----------------------------------------------------------------------
 ; Display BACKSLASH message
 ;----------------------------------------------------------------------  
          MOV   CX,MSG_BACKSLASH_X
          MOV   DX,MSG_BACKSLASH_Y
-         ADD   CX,[MENU_LEFT_COLUMN]
-         ADD   DX,[MENU_TOP_ROW]
-         CALL  VGA_CURSOR_CALC
          MOV   SI,OFFSET MSG_BACKSLASH
-         CALL  DO_MSG
+         CALL  SHOW_MSG
 ;----------------------------------------------------------------------
 ; Display FIELD1_PROMPT
 ;----------------------------------------------------------------------  
          MOV   CX,FIELD1_PROMPT_X
          MOV   DX,FIELD1_PROMPT_Y
-         ADD   CX,[MENU_LEFT_COLUMN]
-         ADD   DX,[MENU_TOP_ROW]
-         CALL  VGA_CURSOR_CALC
          MOV   SI,OFFSET FIELD1_PROMPT
-         CALL  DO_MSG
+         CALL  SHOW_MSG
 ;----------------------------------------------------------------------
 ; Display FIELD2_PROMPT
 ;----------------------------------------------------------------------  
          MOV   CX,FIELD2_PROMPT_X
          MOV   DX,FIELD2_PROMPT_Y
-         ADD   CX,[MENU_LEFT_COLUMN]
-         ADD   DX,[MENU_TOP_ROW]
-         CALL  VGA_CURSOR_CALC
          MOV   SI,OFFSET FIELD2_PROMPT
-         CALL  DO_MSG
+         CALL  SHOW_MSG
 ;----------------------------------------------------------------------
 ; Display FIELD3_PROMPT
 ;----------------------------------------------------------------------  
          MOV   CX,FIELD3_PROMPT_X
          MOV   DX,FIELD3_PROMPT_Y
-         ADD   CX,[MENU_LEFT_COLUMN]
-         ADD   DX,[MENU_TOP_ROW]
-         CALL  VGA_CURSOR_CALC
          MOV   SI,OFFSET FIELD3_PROMPT
-         CALL  DO_MSG
+         CALL  SHOW_MSG
 ;----------------------------------------------------------------------
 ; Display FIELD4_PROMPT
 ;----------------------------------------------------------------------  
          MOV   CX,FIELD4_PROMPT_X
          MOV   DX,FIELD4_PROMPT_Y
-         ADD   CX,[MENU_LEFT_COLUMN]
-         ADD   DX,[MENU_TOP_ROW]
-         CALL  VGA_CURSOR_CALC
          MOV   SI,OFFSET FIELD4_PROMPT
-         CALL  DO_MSG
+         CALL  SHOW_MSG
 ;----------------------------------------------------------------------
 ; Display FIELD5_PROMPT
 ;----------------------------------------------------------------------  
          MOV   CX,FIELD5_PROMPT_X
          MOV   DX,FIELD5_PROMPT_Y
-         ADD   CX,[MENU_LEFT_COLUMN]
-         ADD   DX,[MENU_TOP_ROW]
-         CALL  VGA_CURSOR_CALC
          MOV   SI,OFFSET FIELD5_PROMPT
-         CALL  DO_MSG
+         CALL  SHOW_MSG
 ;----------------------------------------------------------------------
 ; Display PROMPT_SPACE prompt (field 6)
 ;----------------------------------------------------------------------  
          MOV   CX,PROMPT_SPACE_X
          MOV   DX,PROMPT_SPACE_Y
-         ADD   CX,[MENU_LEFT_COLUMN]
-         ADD   DX,[MENU_TOP_ROW]
-         CALL  VGA_CURSOR_CALC
          MOV   SI,OFFSET PROMPT_SPACE
-         CALL  DO_MSG
+         CALL  SHOW_MSG
 ;----------------------------------------------------------------------
 ; Display FIELD7_PROMPT
 ;----------------------------------------------------------------------  
          MOV   CX,FIELD7_PROMPT_X
          MOV   DX,FIELD7_PROMPT_Y
-         ADD   CX,[MENU_LEFT_COLUMN]
-         ADD   DX,[MENU_TOP_ROW]
-         CALL  VGA_CURSOR_CALC
          MOV   SI,OFFSET FIELD7_PROMPT
-         CALL  DO_MSG
+         CALL  SHOW_MSG
 ;----------------------------------------------------------------------
 ; Display FIELD8_PROMPT
 ;----------------------------------------------------------------------  
          MOV   CX,FIELD8_PROMPT_X
          MOV   DX,FIELD8_PROMPT_Y
-         ADD   CX,[MENU_LEFT_COLUMN]
-         ADD   DX,[MENU_TOP_ROW]
-         CALL  VGA_CURSOR_CALC
          MOV   SI,OFFSET FIELD8_PROMPT
-         CALL  DO_MSG
+         CALL  SHOW_MSG
 ;----------------------------------------------------------------------
 ; Display FIELD9_PROMPT
 ;----------------------------------------------------------------------  
          MOV   CX,FIELD9_PROMPT_X
          MOV   DX,FIELD9_PROMPT_Y
-         ADD   CX,[MENU_LEFT_COLUMN]
-         ADD   DX,[MENU_TOP_ROW]
-         CALL  VGA_CURSOR_CALC
          MOV   SI,OFFSET FIELD9_PROMPT
-         CALL  DO_MSG
+         CALL  SHOW_MSG
 ;----------------------------------------------------------------------
 OPTION_FIELD_X = 150
 ;----------------------------------------------------------------------
@@ -1020,6 +777,89 @@ PANEL_EXIT:
          int  21h
          JMP   RESTORE_SCREEN           ;RFT
 PANEL ENDP
+;======================================================================
+; Draw one raised text box and its message.
+; SI -> BOXDEF descriptor (in this segment).  Replaces nine copies of
+; the same drawing sequence.  Clobbers AX,BX,CX,DX,SI,DI like the
+; sequences it replaces; BP is preserved.
+;======================================================================
+BOX_SHADOW    = 0
+BOX_EDGE      = 2
+BOX_X         = 4
+BOX_Y         = 6
+BOX_W         = 8
+BOX_EDGE2     = 10
+BOX_TEXT_DX   = 12
+BOX_TEXT_ATTR = 14
+BOX_MSG       = 16
+
+BOXDEF MACRO name,shadow,edge,x,y,w,edge2,tdx,attr,msg
+name    DW shadow,edge,x,y,w,edge2,tdx,attr,msg
+        ENDM
+
+DRAW_BOX PROC NEAR
+         PUSH  BP
+         MOV   BP,SI
+         MOV   AX,CS:[BP+BOX_SHADOW]
+         CALL  VGA_SET_SHADOW_COLOR
+         MOV   AX,CS:[BP+BOX_EDGE]
+         CALL  VGA_SET_EDGE_COLOR
+         MOV   CX,CS:[BP+BOX_X]
+         MOV   DX,CS:[BP+BOX_Y]
+         ADD   CX,[MENU_LEFT_COLUMN]
+         ADD   DX,[MENU_TOP_ROW]
+         CALL  VGA_CURSOR_CALC
+         MOV   CX,CS:[BP+BOX_W]
+         XOR   DX,DX
+         CALL  DRAW_LINE                 ;Top edge
+         XOR   CX,CX
+         MOV   DX,CHAR_HEIGHT
+         CALL  DRAW_LINE                 ;Left edge
+         MOV   AX,CS:[BP+BOX_EDGE2]
+         CALL  VGA_SET_EDGE_COLOR
+         MOV   CX,CS:[BP+BOX_X]
+         ADD   CX,CS:[BP+BOX_W]
+         DEC   CX
+         MOV   DX,CS:[BP+BOX_Y]
+         ADD   DX,CHAR_HEIGHT
+         ADD   CX,[MENU_LEFT_COLUMN]
+         ADD   DX,[MENU_TOP_ROW]
+         CALL  VGA_CURSOR_CALC
+         MOV   CX,CS:[BP+BOX_W]
+         DEC   CX
+         NEG   CX
+         XOR   DX,DX
+         CALL  DRAW_LINE                 ;Bottom edge
+         XOR   CX,CX
+         MOV   DX,-CHAR_HEIGHT
+         CALL  DRAW_LINE                 ;Right edge
+         MOV   AX,CS:[BP+BOX_TEXT_ATTR]
+         MOV   [TEXT_COLOR],AL
+         MOV   CX,CS:[BP+BOX_X]
+         ADD   CX,CS:[BP+BOX_TEXT_DX]
+         MOV   DX,CS:[BP+BOX_Y]
+         INC   DX
+         ADD   CX,[MENU_LEFT_COLUMN]
+         ADD   DX,[MENU_TOP_ROW]
+         CALL  VGA_CURSOR_CALC
+         MOV   SI,CS:[BP+BOX_MSG]
+         CALL  DO_MSG
+         POP   BP
+         RET
+DRAW_BOX ENDP
+
+;----------------------------------------------------------------------
+; Show a message at a menu-relative pixel position.
+; CX,DX = column,row relative to the menu origin; SI -> message.
+;----------------------------------------------------------------------
+SHOW_MSG PROC NEAR
+         ADD   CX,[MENU_LEFT_COLUMN]
+         ADD   DX,[MENU_TOP_ROW]
+         CALL  VGA_CURSOR_CALC
+         JMP   DO_MSG
+SHOW_MSG ENDP
+
+
 ;----------------------------------------------------------------------
 ; Control panel message area
 ;----------------------------------------------------------------------
@@ -1096,6 +936,17 @@ ESC_MSG_Y = 305
 PANEL_MSG_ESC DB _SPACE,_E,_S,_C,_SPACE,_HYPHEN,_SPACE,_E,x_,i_,t_,_SPACE
 P_ESC_MSG_LEN = $-PANEL_MSG_ESC
               DB  END_OF_STRING
+
+;  name           shadow                edge                  x                 y               width                  edge2                 tdx  text attr                          message
+        BOXDEF BOX_BBS,BBSMSG_SHADOW,BBSMSG_EDGE,0,BBSMSG_ROW,(BBSMSG_LEN*8)+2,BBSMSG_SHADOW,1,BBSMSG_TEXT_COLOR,MSG_BBS
+        BOXDEF BOX_SETTING,MSG_SETTING_SHADOW,MSG_SETTING_EDGE,MSG_SETTING_X,MSG_SETTING_Y,(MSG_SETTING_LEN*8)+2,MSG_SETTING_SHADOW,1,MSG_SETTING_TEXT_COLOR,MSG_SETTING
+        BOXDEF BOX_HELPING,MSG_HELPING_SHADOW,MSG_HELPING_EDGE,MSG_HELPING_X,MSG_HELPING_Y,(MSG_HELPING_LEN*8)+2,MSG_HELPING_SHADOW,1,MSG_HELPING_TEXT_COLOR,PANEL_MSG_HELPING
+        BOXDEF BOX_VERSION,BLACK,BRIGHT_WHITE,MSG_VERSION_X,MSG_VERSION_Y,(P_MSG_VERSION_LEN*8)+2,MSG_VERSION_SHADOW,1,MSG_VERSION_TEXT_COLOR,PANEL_MSG_VERSION
+        BOXDEF BOX_F2,MSG_F2_SHADOW,MSG_F2_EDGE,MSG_F2_X,MSG_F2_Y,(MSG_F2_LEN*8)+2,MSG_F2_SHADOW,1,MSG_F2_TEXT_COLOR,PANEL_MSG_F2
+        BOXDEF BOX_ESC,BLACK,BRIGHT_WHITE,ESC_MSG_X,ESC_MSG_Y,(P_ESC_MSG_LEN*8)+2,BLACK,1,(WHITE_BG + BLACK),PANEL_MSG_ESC
+        BOXDEF BOX_CANT_UNLOAD,UNLOAD_SHADOW_COLOR,UNLOAD_EDGE_COLOR,71,94,50,UNLOAD_SHADOW_COLOR,4,UNLOAD_FRAME_COLOR SHL 4 + BLACK,CANT_UNLOAD_MSG4
+        BOXDEF BOX_UNLOAD_NO,UNLOAD_SHADOW_COLOR,UNLOAD_EDGE_COLOR,23,94,50,UNLOAD_SHADOW_COLOR,1,UNLOAD_FRAME_COLOR SHL 4 + BLACK,OK_MSG3
+        BOXDEF BOX_UNLOAD_YES,UNLOAD_SHADOW_COLOR,UNLOAD_EDGE_COLOR,119,94,58,UNLOAD_SHADOW_COLOR,1,UNLOAD_FRAME_COLOR SHL 4 + BLACK,OK_MSG4
 
 ;----------------------------------------------------------------------
 PANEL_TEXT_COLOR = (BLACK_BG+WHITE)
@@ -4148,11 +3999,8 @@ CANT_UNLOAD:
          MOV   DS,AX
          MOV   CX,10
          MOV   DX,27
-         ADD   CX,[MENU_LEFT_COLUMN]
-         ADD   DX,[MENU_TOP_ROW]
-         CALL  VGA_CURSOR_CALC
          MOV   SI,OFFSET CANT_UNLOAD_MSG1
-         CALL  DO_MSG
+         CALL  SHOW_MSG
          JMP   SHORT CANT_UNLOAD_SKIP1
 
 CANT_UNLOAD_MSG1 LABEL BYTE
@@ -4165,11 +4013,8 @@ CANT_UNLOAD_MSG1 LABEL BYTE
 CANT_UNLOAD_SKIP1:  
          MOV   CX,10
          MOV   DX,46
-         ADD   CX,[MENU_LEFT_COLUMN]
-         ADD   DX,[MENU_TOP_ROW]
-         CALL  VGA_CURSOR_CALC
          MOV   SI,OFFSET CANT_UNLOAD_MSG2
-         CALL  DO_MSG
+         CALL  SHOW_MSG
          JMP   SHORT CANT_UNLOAD_SKIP2
 
 CANT_UNLOAD_MSG2 LABEL BYTE
@@ -4182,11 +4027,8 @@ CANT_UNLOAD_MSG2 LABEL BYTE
 CANT_UNLOAD_SKIP2:  
          MOV   CX,10
          MOV   DX,65
-         ADD   CX,[MENU_LEFT_COLUMN]
-         ADD   DX,[MENU_TOP_ROW]
-         CALL  VGA_CURSOR_CALC
          MOV   SI,OFFSET CANT_UNLOAD_MSG3
-         CALL  DO_MSG
+         CALL  SHOW_MSG
          JMP   SHORT CANT_UNLOAD_SKIP3
 ; "???? resident program"
 CANT_UNLOAD_MSG3 LABEL BYTE
@@ -4197,42 +4039,8 @@ CANT_UNLOAD_MSG3 LABEL BYTE
          DB   END_OF_STRING
 
 CANT_UNLOAD_SKIP3:  
-         MOV   AX,UNLOAD_SHADOW_COLOR     ;BLACK
-         CALL  VGA_SET_SHADOW_COLOR
-         MOV   AX,UNLOAD_EDGE_COLOR       ;BRIGHT_CYAN
-         CALL  VGA_SET_EDGE_COLOR
-         MOV   CX,71
-         MOV   DX,94
-         ADD   CX,[MENU_LEFT_COLUMN]
-         ADD   DX,[MENU_TOP_ROW]
-         CALL  VGA_CURSOR_CALC
-         MOV   CX,50
-         MOV   DX,0
-         CALL  DRAW_LINE
-         MOV   CX,0
-         MOV   DX,20
-         CALL  DRAW_LINE
-         MOV   AX,UNLOAD_SHADOW_COLOR     ;BLACK
-         CALL  VGA_SET_EDGE_COLOR
-         MOV   CX,120
-         MOV   DX,114
-         ADD   CX,[MENU_LEFT_COLUMN]
-         ADD   DX,[MENU_TOP_ROW]
-         CALL  VGA_CURSOR_CALC
-         MOV   CX,-49
-         MOV   DX,0
-         CALL  DRAW_LINE
-         MOV   CX,0
-         MOV   DX,-20
-         CALL  DRAW_LINE
-         MOV   [TEXT_COLOR],UNLOAD_FRAME_COLOR SHL 4 +BLACK
-         MOV   CX,75
-         MOV   DX,95
-         ADD   CX,[MENU_LEFT_COLUMN]
-         ADD   DX,[MENU_TOP_ROW]
-         CALL  VGA_CURSOR_CALC
-         MOV   SI,OFFSET CANT_UNLOAD_MSG4
-         CALL  DO_MSG
+         MOV   SI,OFFSET BOX_CANT_UNLOAD
+         CALL  DRAW_BOX
          JMP   SHORT CANT_UNLOAD_SKIP4
 
 CANT_UNLOAD_MSG4 LABEL BYTE
@@ -4247,11 +4055,8 @@ OK_TO_UNLOAD:
          MOV   DS,AX
          MOV   CX,20
          MOV   DX,27
-         ADD   CX,[MENU_LEFT_COLUMN]
-         ADD   DX,[MENU_TOP_ROW]
-         CALL  VGA_CURSOR_CALC
          MOV   SI,OFFSET OK_MSG1
-         CALL  DO_MSG
+         CALL  SHOW_MSG
          JMP   SHORT OK_SKIP1
 
 OK_MSG1 LABEL BYTE
@@ -4264,11 +4069,8 @@ OK_MSG1 LABEL BYTE
 OK_SKIP1:
          MOV   CX,20
          MOV   DX,46
-         ADD   CX,[MENU_LEFT_COLUMN]
-         ADD   DX,[MENU_TOP_ROW]
-         CALL  VGA_CURSOR_CALC
          MOV   SI,OFFSET OK_MSG2
-         CALL  DO_MSG
+         CALL  SHOW_MSG
          JMP   SHORT OK_SKIP2
 
 OK_MSG2 LABEL BYTE
@@ -4278,42 +4080,8 @@ OK_MSG2 LABEL BYTE
          DB   _SPACE,_SPACE,_SPACE,END_OF_STRING
 
 OK_SKIP2:
-         MOV   AX,UNLOAD_SHADOW_COLOR    ;BLACK
-         CALL  VGA_SET_SHADOW_COLOR
-         MOV   AX,UNLOAD_EDGE_COLOR      ;BRIGHT_CYAN
-         CALL  VGA_SET_EDGE_COLOR
-         MOV   CX,23
-         MOV   DX,94
-         ADD   CX,[MENU_LEFT_COLUMN]
-         ADD   DX,[MENU_TOP_ROW]
-         CALL  VGA_CURSOR_CALC
-         MOV   CX,50
-         MOV   DX,0
-         CALL  DRAW_LINE
-         MOV   CX,0
-         MOV   DX,20
-         CALL  DRAW_LINE
-         MOV   AX,UNLOAD_SHADOW_COLOR   ;BLACK
-         CALL  VGA_SET_EDGE_COLOR
-         MOV   CX,72
-         MOV   DX,114
-         ADD   CX,[MENU_LEFT_COLUMN]
-         ADD   DX,[MENU_TOP_ROW]
-         CALL  VGA_CURSOR_CALC
-         MOV   CX,-49
-         MOV   DX,0
-         CALL  DRAW_LINE
-         MOV   CX,0
-         MOV   DX,-20
-         CALL  DRAW_LINE
-         MOV   [TEXT_COLOR],UNLOAD_FRAME_COLOR SHL 4 + BLACK
-         MOV   CX,24
-         MOV   DX,95
-         ADD   CX,[MENU_LEFT_COLUMN]
-         ADD   DX,[MENU_TOP_ROW]
-         CALL  VGA_CURSOR_CALC
-         MOV   SI,OFFSET OK_MSG3
-         CALL  DO_MSG
+         MOV   SI,OFFSET BOX_UNLOAD_NO
+         CALL  DRAW_BOX
          JMP   SHORT OK_SKIP3
 
 OK_MSG3 LABEL BYTE
@@ -4321,42 +4089,8 @@ OK_MSG3 LABEL BYTE
          DB   END_OF_STRING
 
 OK_SKIP3:
-         MOV   AX,UNLOAD_SHADOW_COLOR ;BLACK
-         CALL  VGA_SET_SHADOW_COLOR
-         MOV   AX,UNLOAD_EDGE_COLOR   ;BRIGHT_CYAN
-         CALL  VGA_SET_EDGE_COLOR
-         MOV   CX,119
-         MOV   DX,94
-         ADD   CX,[MENU_LEFT_COLUMN]
-         ADD   DX,[MENU_TOP_ROW]
-         CALL  VGA_CURSOR_CALC
-         MOV   CX,58
-         MOV   DX,0
-         CALL  DRAW_LINE
-         MOV   CX,0
-         MOV   DX,20
-         CALL  DRAW_LINE
-         MOV   AX,UNLOAD_SHADOW_COLOR   ;BLACK
-         CALL  VGA_SET_EDGE_COLOR
-         MOV   CX,176
-         MOV   DX,114
-         ADD   CX,[MENU_LEFT_COLUMN]
-         ADD   DX,[MENU_TOP_ROW]
-         CALL  VGA_CURSOR_CALC
-         MOV   CX, -57
-         MOV   DX, 0
-         CALL  DRAW_LINE
-         MOV   CX, 0
-         MOV   DX, -20
-         CALL  DRAW_LINE
-         MOV   [TEXT_COLOR],UNLOAD_FRAME_COLOR SHL 4 + BLACK
-         MOV   CX, 120
-         MOV   DX, 95
-         ADD   CX,[MENU_LEFT_COLUMN]
-         ADD   DX,[MENU_TOP_ROW]
-         CALL  VGA_CURSOR_CALC
-         MOV   SI,OFFSET OK_MSG4
-         CALL  DO_MSG
+         MOV   SI,OFFSET BOX_UNLOAD_YES
+         CALL  DRAW_BOX
          JMP   SHORT OK_SKIP4
 
 OK_MSG4 LABEL BYTE
