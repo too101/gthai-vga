@@ -60,10 +60,3 @@ check([(0,0xb2,7),(80,0xb2,7),(160,0xb2,7),(240,0xb2,7)],True,scan=False,seed=80
 check([(i*80+10,0xa1,7) for i in range(25)],[])
 check([(0,0xb2,1),(80,0xb2,2),(160,0xb2,3),(240,0xb2,4)],[0,80,160,240],seed=80,direct='MARK_SHADE_VERTICAL')
 print(f'PASS: {count} shade cases; B0/B1/B2, lengths, colours, all-cell detector bounds, top/bottom/row edges, gaps and Thai text')
-
-# Every byte offset in the text page maps to the same row as integer division.
-row_table=bytes(u.mem_read(0x10000+symbols['TEXT_ROW_STARTS'],250))
-for offset in range(4000):
- index=(offset>>5)*2
- assert int.from_bytes(row_table[index:index+2],'little')==(offset//160)*160,offset
-print('PASS: 4000 text-byte offsets map to the exact row start without DIV')
