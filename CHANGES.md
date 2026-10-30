@@ -74,3 +74,7 @@
 - ใช้ PUSHF/CLI/POPF เฉพาะรูทีนเขียน glyph, ช่องว่าง และ cursor เพื่อไม่ให้ hotkey เข้ามาเปลี่ยนสถานะ VGA/latch กลางการเขียน และคืนค่า interrupt flag ตามผู้เรียก
 - เพิ่ม regression test จำลอง popup รับ batch ค้าง ตามด้วยกรอบปุ่มที่ใช้ bit mask แคบ ตรวจ bitmap ครบทุกแถว และตรวจว่าช่วงเขียนปิด interrupt พร้อมคืน IF หลังจบ
 - ทดสอบทั้ง GTHAI และ GTHAI386 ผ่านทั้งหมด ผลความเร็วที่บันทึกก่อนหน้านี้เป็นของรุ่น 3.31 ยังไม่ได้วัดซ้ำสำหรับ 3.32
+
+## ยังไม่ปล่อย — เครื่องมือ benchmark
+
+- เพิ่ม profile `scenarios` ใน `tools/benchmark_dosbox.py` และ `tools/bench_scenarios.py` (หน้าจอ Norton Commander, ไทยผสมสระ, ช่องว่าง, แก้ทีละช่อง, ขยับ cursor, เลื่อนจอ) พร้อม `tests/verify_benchmark_scenarios.py` และเพิ่มใน `run_all.py` ไม่เปลี่ยนไดรเวอร์

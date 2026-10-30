@@ -1,0 +1,208 @@
+{
+  "source_sha256": "bab64fad9d4b833649b6a2102385d36402bde40716aacfd03b3335dd31536c6f",
+  "include_sha256": "06172352c562eb1b768d093f0acadc7856ffabe79d46d5a30ceb9d8fea407302",
+  "environment": {
+    "core": "normal",
+    "cpu": "386",
+    "cycles": 10000,
+    "repetitions": 3,
+    "scale": 1,
+    "profile": "scenarios",
+    "timer": "BIOS tick",
+    "tick_seconds": 0.05492540115422458
+  },
+  "cases": {
+    "nc_full": 300,
+    "thai_full": 300,
+    "blank_full": 500,
+    "edit_cell": 5000,
+    "cursor_move": 5000,
+    "scroll_line": 200
+  },
+  "samples": {
+    "GTHAI": [
+      {
+        "case": "nc_full",
+        "repeat": 0,
+        "ticks": 141
+      },
+      {
+        "case": "thai_full",
+        "repeat": 0,
+        "ticks": 141
+      },
+      {
+        "case": "blank_full",
+        "repeat": 0,
+        "ticks": 235
+      },
+      {
+        "case": "edit_cell",
+        "repeat": 0,
+        "ticks": 24
+      },
+      {
+        "case": "cursor_move",
+        "repeat": 0,
+        "ticks": 26
+      },
+      {
+        "case": "scroll_line",
+        "repeat": 0,
+        "ticks": 18
+      },
+      {
+        "case": "nc_full",
+        "repeat": 1,
+        "ticks": 141
+      },
+      {
+        "case": "thai_full",
+        "repeat": 1,
+        "ticks": 141
+      },
+      {
+        "case": "blank_full",
+        "repeat": 1,
+        "ticks": 235
+      },
+      {
+        "case": "edit_cell",
+        "repeat": 1,
+        "ticks": 24
+      },
+      {
+        "case": "cursor_move",
+        "repeat": 1,
+        "ticks": 26
+      },
+      {
+        "case": "scroll_line",
+        "repeat": 1,
+        "ticks": 18
+      },
+      {
+        "case": "nc_full",
+        "repeat": 2,
+        "ticks": 141
+      },
+      {
+        "case": "thai_full",
+        "repeat": 2,
+        "ticks": 141
+      },
+      {
+        "case": "blank_full",
+        "repeat": 2,
+        "ticks": 235
+      },
+      {
+        "case": "edit_cell",
+        "repeat": 2,
+        "ticks": 24
+      },
+      {
+        "case": "cursor_move",
+        "repeat": 2,
+        "ticks": 26
+      },
+      {
+        "case": "scroll_line",
+        "repeat": 2,
+        "ticks": 18
+      }
+    ],
+    "GTHAI386": [
+      {
+        "case": "nc_full",
+        "repeat": 0,
+        "ticks": 138
+      },
+      {
+        "case": "thai_full",
+        "repeat": 0,
+        "ticks": 138
+      },
+      {
+        "case": "blank_full",
+        "repeat": 0,
+        "ticks": 230
+      },
+      {
+        "case": "edit_cell",
+        "repeat": 0,
+        "ticks": 12
+      },
+      {
+        "case": "cursor_move",
+        "repeat": 0,
+        "ticks": 14
+      },
+      {
+        "case": "scroll_line",
+        "repeat": 0,
+        "ticks": 18
+      },
+      {
+        "case": "nc_full",
+        "repeat": 1,
+        "ticks": 138
+      },
+      {
+        "case": "thai_full",
+        "repeat": 1,
+        "ticks": 138
+      },
+      {
+        "case": "blank_full",
+        "repeat": 1,
+        "ticks": 230
+      },
+      {
+        "case": "edit_cell",
+        "repeat": 1,
+        "ticks": 12
+      },
+      {
+        "case": "cursor_move",
+        "repeat": 1,
+        "ticks": 14
+      },
+      {
+        "case": "scroll_line",
+        "repeat": 1,
+        "ticks": 18
+      },
+      {
+        "case": "nc_full",
+        "repeat": 2,
+        "ticks": 138
+      },
+      {
+        "case": "thai_full",
+        "repeat": 2,
+        "ticks": 138
+      },
+      {
+        "case": "blank_full",
+        "repeat": 2,
+        "ticks": 230
+      },
+      {
+        "case": "edit_cell",
+        "repeat": 2,
+        "ticks": 12
+      },
+      {
+        "case": "cursor_move",
+        "repeat": 2,
+        "ticks": 14
+      },
+      {
+        "case": "scroll_line",
+        "repeat": 2,
+        "ticks": 18
+      }
+    ]
+  }
+}

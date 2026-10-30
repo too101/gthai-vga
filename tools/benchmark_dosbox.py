@@ -1,9 +1,11 @@
 """Compare shared-source 8086/386 routines in identically configured DOSBox-X.
 Uses BIOS ticks (about 54.9 ms), so this is emulated timing, not hardware timing.
+Profiles: glyph (routines), screen (full redraw/idle), scenarios (Norton-like, Thai text, blank,
+single-cell edit, cursor move, one-line scroll; screens come from tools/bench_scenarios.py).
 No installed driver is replaced: generated benchmark copies run in fresh emulators.
 """
 from pathlib import Path
-import argparse,subprocess,struct,time,json,statistics,hashlib
+import argparse,subprocess,struct,time,json,statistics,hashlib,sys
 
 parser=argparse.ArgumentParser()
 parser.add_argument('--assembler',required=True)
@@ -14,7 +16,7 @@ parser.add_argument('--scale',type=int,default=1,help='Multiply loop counts for 
 parser.add_argument('--source',type=Path,help='Alternate source snapshot for before/after comparisons')
 parser.add_argument('--work-dir',type=Path,default=Path('work/benchmark'))
 parser.add_argument('--target',choices=('both','GTHAI','GTHAI386'),default='both')
-parser.add_argument('--profile',choices=('glyph','screen'),default='glyph')
+parser.add_argument('--profile',choices=('glyph','screen','scenarios'),default='glyph')
 args=parser.parse_args()
 if args.cycles<=0 or not 1<=args.repetitions<=20 or not 1<=args.scale<=20: parser.error('Invalid cycles, repetitions, or scale')
 root=Path(__file__).resolve().parents[1]
@@ -66,7 +68,8 @@ loops=[
  """         MOV SI,OFFSET BENCH_THAI
          CALL DO_MSG
 """]
-if args.profile=='screen':
+setups=None; extra=''
+if args.profile in ('screen','scenarios'):
     cases=[('screen_idle',5000*args.scale),('screen_redraw',500*args.scale)]
     setup="""
          MOV WORD PTR [VID_SEG],0B800H
@@ -122,16 +125,93 @@ BENCH_ROWS:
          REP STOSW
          POP ES
 """
-    loops=[call,dirty+call]
+    if args.profile=='screen':
+        loops=[call,dirty+call]
+    else:
+        # Realistic whole-driver scenarios; each case reloads its own screen first.
+        sys.path.insert(0,str(Path(__file__).resolve().parent))
+        from bench_scenarios import SCREENS,EDIT_ROW,EDIT_COL,CURSOR_A,CURSOR_B
+        hide_cursor="""         MOV AX,[VID_OFFSET]
+         MOV [L0538H],AX
+         MOV DX,03D4H
+         MOV AX,070EH
+         OUT DX,AX
+         MOV AX,0D00FH
+         OUT DX,AX
+"""
+        def load_screen(label):
+            return """         PUSH CS
+         POP DS
+         MOV AX,0B800H
+         MOV ES,AX
+         XOR DI,DI
+         MOV SI,OFFSET BENCH_SCR_%s
+         MOV CX,2000
+         REP MOVSW
+         PUSH CS
+         POP ES
+         MOV DI,OFFSET VID_SAVE
+         MOV SI,OFFSET BENCH_SCR_%s
+         MOV CX,2000
+         REP MOVSW
+         MOV AX,0A000H
+         MOV ES,AX
+"""%(label,label)+hide_cursor
+        blank_setup="""         MOV AX,0B800H
+         MOV ES,AX
+         XOR DI,DI
+         MOV AX,0720H
+         MOV CX,2000
+         REP STOSW
+         PUSH CS
+         POP ES
+         MOV DI,OFFSET VID_SAVE
+         MOV CX,2000
+         REP STOSW
+         MOV AX,0A000H
+         MOV ES,AX
+"""+hide_cursor
+        toggle="""         PUSH ES
+         MOV AX,0B800H
+         MOV ES,AX
+         XOR BYTE PTR ES:[%d],1
+         POP ES
+"""%((EDIT_ROW*80+EDIT_COL)*2)
+        cursor="""         XOR WORD PTR [BENCH_FLIP],1
+         PUSH DX                 ; DX is the outer loop counter
+         MOV DX,03D4H
+         MOV AX,%04XH
+         OUT DX,AX
+         MOV AX,%04XH
+         CMP WORD PTR [BENCH_FLIP],0
+         JE BENCH_CUR_{i}
+         MOV AX,%04XH
+BENCH_CUR_{i}:
+         OUT DX,AX
+         POP DX
+"""%(0x0E|(CURSOR_A>>8)<<8,0x0F|(CURSOR_A&255)<<8,0x0F|(CURSOR_B&255)<<8)
+        scroll="""         MOV BH,07H
+         CALL SCRL_UP1
+         STI
+"""
+        cases=[(n,c*args.scale) for n,c in [('nc_full',300),('thai_full',300),('blank_full',500),('edit_cell',5000),('cursor_move',5000),('scroll_line',200)]]
+        setups=[load_screen('NORTON'),load_screen('THAI'),blank_setup,load_screen('EDIT'),load_screen('EDIT'),load_screen('EDIT')]
+        loops=[dirty+call,dirty+call,dirty+call,toggle+call,cursor+call,scroll]
+        for label,fn in (('NORTON','norton'),('THAI','thai'),('EDIT','edit')):
+            data=SCREENS[fn.lower()]()
+            extra+='BENCH_SCR_%s LABEL BYTE\n'%label
+            for i in range(0,len(data),32): extra+='         DB '+','.join(str(b) for b in data[i:i+32])+'\n'
+if setups is None: setups=['']*len(cases)
 for index,(name,iterations) in enumerate(cases):
     inner=min(50000,iterations)
     assert iterations%inner==0
+    body+=setups[index]
     body+=f"         MOV WORD PTR [BENCH_CASE],{index}\n"
     body+="""         CALL BENCH_SYNC
          MOV [BENCH_BEGIN],AX
 """
     body+=f"         MOV DX,{iterations//inner}\nBENCH_OUTER_{index}:\n         MOV CX,{inner}\nBENCH_INNER_{index}:\n         PUSH CX\n"
-    body+=loops[index]
+    body+=loops[index].replace('{i}',str(index))
     body+=f"         POP CX\n         LOOP BENCH_INNER_{index}\n         DEC DX\n         JNZ BENCH_OUTER_{index}\n"
     body+="""         CALL BENCH_CLOCK
          SUB AX,[BENCH_BEGIN]
@@ -179,8 +259,10 @@ BENCH_BEGIN DW 0
 BENCH_CASE DW 0
 BENCH_REPEAT DW 0
 BENCH_ELAPSED DW 0
+BENCH_FLIP DW 0
 BENCH_THAI DB (0A1H XOR 5),(0D4H XOR 5),(0E8H XOR 5),5
 """
+body+=extra
 variant=source.replace('JMP   INIT','JMP   BENCH_START',1)
 end=variant.lower().rfind('code_seg ends')
 variant=variant[:end]+body+variant[end:]

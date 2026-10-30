@@ -68,3 +68,40 @@ python tools/benchmark_dosbox.py --assembler C:\tools\jwasm.exe --dosbox C:\DOSB
 ### English summary for 3.31
 
 Both builds now share VGA register state during consecutive glyph rendering in Thai 25-line screen updates. On the same emulated 386, full-screen ASCII redraw time fell by 6.1% for GTHAI and 6.3% for GTHAI386 versus their respective previous builds. The 386 build also uses CMPSD and reduced unchanged-screen checking time by 48.9% using median BIOS ticks. These results exclude frame detection and are not physical-hardware measurements.
+
+## Profile `scenarios` — สถานการณ์ใช้งานจริง (ยังไม่มีผลวัด)
+
+ใช้เรียก `UPDATE_SCREEN_THAI_25` และ `SCRL_UP1` ของไดรเวอร์จริงกับหน้าจอที่สร้างแบบกำหนดผลได้จาก `tools/bench_scenarios.py` แต่ละกรณีโหลดหน้าจอของตัวเองก่อนจับเวลา ผลเป็น BIOS tick ในตัวจำลองเช่นเดียวกับ profile อื่น
+
+| กรณี | งานต่อรอบ | จำนวนรอบ (×scale) |
+|---|---|---:|
+| `nc_full` | วาดใหม่ทั้งจอแบบ Norton Commander (กรอบคู่ แรเงา แถบ F-key) | 300 |
+| `thai_full` | วาดใหม่ทั้งจอข้อความไทยผสมสระ/วรรณยุกต์/ตัวเลข | 300 |
+| `blank_full` | วาดใหม่ทั้งจอช่องว่าง | 500 |
+| `edit_cell` | หน้าจอแบบ editor สลับอักษรหนึ่งช่องแล้วอัปเดต | 5,000 |
+| `cursor_move` | ขยับ cursor สลับสองตำแหน่งแล้วอัปเดต | 5,000 |
+| `scroll_line` | `SCRL_UP1` เลื่อนจอหนึ่งบรรทัด | 200 |
+
+```powershell
+python tools/benchmark_dosbox.py --assembler C:\tools\jwasm.exe --dosbox C:\DOSBox-X\dosbox-x.exe --profile scenarios --repetitions 3 --work-dir work/benchmark-scenarios
+```
+
+- ใช้ `--source` ชี้ไปที่ ASM รุ่นเก่าและแยก `--work-dir` เพื่อเทียบรุ่น และใช้ `--scale` ปรับจำนวนรอบให้ได้อย่างน้อยหลายสิบ tick (จำนวนรอบเกิน 50,000 ต้องหาร 50,000 ลงตัว)
+- `tests/verify_benchmark_scenarios.py` ตรวจใน Unicorn ว่าแต่ละกรณีทำงานตามที่ตั้งใจ (เข้าเส้นทางตรวจกรอบ/ผสมสระ, แก้ไม่เกินหนึ่งแถว, cursor ไม่แตะข้อความ, latch scroll ครบ) แต่ไม่ได้วัดเวลา
+- จำนวนรอบเป็นค่าเริ่มต้นที่ยังไม่ได้ปรับกับ DOSBox-X ถ้ากรณีใดได้ 0 tick สคริปต์จะหยุดด้วย assertion ให้เพิ่ม `--scale`
+- `nc_full` รอบแรกอาจยกเลิกการวาดเพื่อสแกนกรอบก่อน (พฤติกรรมของไดรเวอร์) ซึ่งเฉลี่ยหายไปเมื่อรอบมาก
+
+### ผลวัด profile `scenarios` (รุ่น 3.32)
+
+วัด 30 ตุลาคม 2026 ใน DOSBox-X, CPU จำลอง 386, fixed 10000 cycles, 3 รอบ ได้ค่าเท่ากันทุกรอบ ผลดิบอยู่ที่ [dosbox-scenarios-3.32.json](benchmarks/dosbox-scenarios-3.32.json)
+
+| กรณี | GTHAI (ticks) | GTHAI386 (ticks) | เปลี่ยนแปลง |
+|---|---:|---:|---:|
+| nc_full (300 รอบ) | 141 | 138 | -2.1% |
+| thai_full (300 รอบ) | 141 | 138 | -2.1% |
+| blank_full (500 รอบ) | 235 | 230 | -2.1% |
+| edit_cell (5,000 รอบ) | 24 | 12 | -50.0% |
+| cursor_move (5,000 รอบ) | 26 | 14 | -46.2% |
+| scroll_line (200 รอบ) | 18 | 18 | 0.0% |
+
+ข้อสังเกต: วาดใหม่ทั้งจอใช้เวลาเท่ากันไม่ว่าเนื้อหาอะไร (ต้นทุนอยู่ที่การเขียนทีละไบต์) การแก้ทีละช่องและการขยับ cursor เสียเวลาไปกับการสแกนเทียบหน้าจอเป็นหลักซึ่งรุ่น 386 ลดลงครึ่งหนึ่ง และการเลื่อนจอเท่ากันทั้งสองรุ่น ผลนี้มาจากตัวจำลอง ไม่ได้วัดต้นทุนบัส VGA จริงหรือเครื่อง 8086 จริง
