@@ -1,6 +1,6 @@
 # GThai VGA
 
-ไดรเวอร์ภาษาไทยสำหรับ DOS รุ่น **3.33** ใช้ VGA 640×480 สี 16 สี และฟอนต์ 8×19 จุด มีสองรุ่นจาก source เดียวกัน: รุ่น 8086 และรุ่น 386 ขึ้นไป
+ไดรเวอร์ภาษาไทยสำหรับ DOS รุ่น **3.34** ใช้ VGA 640×480 สี 16 สี และฟอนต์ 8×19 จุด มีสองรุ่นจาก source เดียวกัน: รุ่น 8086 และรุ่น 386 ขึ้นไป
 
 ## ประวัติและเครดิต
 
@@ -37,7 +37,7 @@ The revised fonts combine and adapt glyphs from **AxTHAI**, **ThaiPro**, and **A
 
 Display options include English, Thai 8-line mode without automatic vowel/tone composition, and Thai 25-line mode with composition. The settings dialog supports the taller fonts, and the Thai cursor spans the full character height.
 
-Both executables provide the same features and fonts; load only one at a time. GTHAI386.COM additionally uses 32-bit moves and ORs for glyph copying and vowel/tone composition, `REPE CMPSD` for the changed-screen check, and a single `SHR reg,4` in colour setup; the rest, including all VGA output, is identical. Version 3.33 shrinks the resident driver by 867 bytes by sharing the dialog drawing code without changing its output. Version 3.32 fixes popup dialogs inheriting interrupted batch state and protects individual VGA glyph updates from interrupts. Version 3.31 reduces repeated VGA register setup during Thai 25-line screen updates in both builds, while the 386 build also compares text using `CMPSD`. The 386 build remains a 16-bit DOS real-mode program, uses 32-bit instructions for glyph copying and composition, and preserves the interrupted program’s upper register bits. VGA drawing and latch scrolling remain byte-based. In the version 3.30 DOSBox-X comparison on the same emulated 386, it reduced Thai composition time by **23.1%** and composed Thai drawing time by **9.2%**. These are emulator microbenchmarks, not real-hardware measurements; see the [benchmark report](docs/BENCHMARK.md).
+Both executables provide the same features and fonts; load only one at a time. GTHAI386.COM additionally uses 32-bit moves and ORs for glyph copying and vowel/tone composition, `REPE CMPSD` for the changed-screen check, and a single `SHR reg,4` in colour setup; the rest, including all VGA output, is identical. Version 3.34 updates the Thai font (`GTHAI2-19.FON`): bolder glyphs and a corrected mai taikhu position. Version 3.33 shrinks the resident driver by 867 bytes by sharing the dialog drawing code without changing its output. Version 3.32 fixes popup dialogs inheriting interrupted batch state and protects individual VGA glyph updates from interrupts. Version 3.31 reduces repeated VGA register setup during Thai 25-line screen updates in both builds, while the 386 build also compares text using `CMPSD`. The 386 build remains a 16-bit DOS real-mode program, uses 32-bit instructions for glyph copying and composition, and preserves the interrupted program’s upper register bits. VGA drawing and latch scrolling remain byte-based. In the version 3.30 DOSBox-X comparison on the same emulated 386, it reduced Thai composition time by **23.1%** and composed Thai drawing time by **9.2%**. These are emulator microbenchmarks, not real-hardware measurements; see the [benchmark report](docs/BENCHMARK.md).
 
 ## ความสามารถ
 
@@ -45,6 +45,7 @@ Both executables provide the same features and fonts; load only one at a time. G
 - ผสมพยัญชนะ สระ และวรรณยุกต์ โดยยกวรรณยุกต์เมื่อมีสระบน
 - ตรวจเส้นกรอบและแรเงา ทั้งแนวนอนและแนวตั้ง ใช้สีช่องข้างเคียงช่วยตรวจเส้นตั้ง
 - หน้าตั้งค่ารองรับฟอนต์ 8×19 จุด และ cursor ไทยสูงเต็มตัวอักษร
+- รุ่น 3.34 ปรับฟอนต์ไทย `GTHAI2-19.FON` ให้ตัวหนาขึ้นและแก้ตำแหน่งไม้ไต่คู้ (็)
 - รุ่น 3.33 ลดขนาดโปรแกรมที่ค้างในหน่วยความจำลง 867 ไบต์โดยรวมโค้ดวาดกรอบและข้อความของเมนู ภาพที่แสดงเหมือนเดิมทุกไบต์
 - รุ่น 3.32 ยกเลิกสถานะวาดเป็นชุดก่อนเปิดหน้าต่าง และกัน interrupt ระหว่างเขียนอักษรหนึ่งตัว เพื่อป้องกันข้อความปุ่มเสียเมื่อเปิดหน้าต่างแทรกการวาดจอ
 
@@ -60,7 +61,7 @@ Both executables provide the same features and fonts; load only one at a time. G
 
 <a href="docs/images/norton-commander-ega.png"><img src="docs/images/norton-commander-ega.png" alt="Norton Commander ในโหมด EGA 640x350 ฟอนต์ 8x14"></a>
 
-**GTHAI VGA — 640×480, ฟอนต์ 8×19 จุด** (ภาพจาก GThai 3.28)
+**GTHAI VGA — 640×480, ฟอนต์ 8×19 จุด** (ภาพจาก GThai 3.33 ฟอนต์ไทยชุดใหม่)
 
 <a href="docs/images/norton-commander-vga.png"><img src="docs/images/norton-commander-vga.png" alt="Norton Commander ในโหมด VGA 640x480 ฟอนต์ 8x19"></a>
 
@@ -70,7 +71,7 @@ Both executables provide the same features and fonts; load only one at a time. G
 
 <a href="docs/images/settings-ega.png"><img src="docs/images/settings-ega.png" alt="หน้าตั้งค่า GThai 3.12 ในโหมด EGA"></a>
 
-**GTHAI VGA — ฟอนต์ 8×19 จุด** (ภาพจาก GThai 3.22)
+**GTHAI VGA — ฟอนต์ 8×19 จุด** (ภาพจาก GThai 3.33 ฟอนต์ไทยชุดใหม่)
 
 <a href="docs/images/settings-vga.png"><img src="docs/images/settings-vga.png" alt="หน้าตั้งค่า GThai ในโหมด VGA 640x480 ฟอนต์ 8x19"></a>
 

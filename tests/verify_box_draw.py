@@ -40,14 +40,15 @@ def run(start, setup=None, **regs):
     for plane in m.planes: h.update(bytes(plane))
     return h.hexdigest()[:16], sum(1 for p in m.planes for b in p if b)
 
-# Digest of (planes) recorded from the build before DRAW_BOX was introduced.
+# Digest of (planes) recorded from the build before DRAW_BOX was introduced, using the
+# current fonts/GTHAI*-19.FON.  Re-record from that build when the fonts or version text change.
 GOLDEN = {
-    'GTHAI': {'PANEL': '037cecc986804430', 'CANT_UNLOAD': 'c1e15e6d2c352413',
-              'OK_TO_UNLOAD': '74a2137945f2a0d6', 'CANT_UNLOAD_SKIP3': '07baa0734df26422',
-              'OK_SKIP2': '003665d43bf06148', 'OK_SKIP3': 'b78411db034413d0'},
-    'GTHAI386': {'PANEL': 'c80013f2593a81ed', 'CANT_UNLOAD': 'c1e15e6d2c352413',
-                 'OK_TO_UNLOAD': '74a2137945f2a0d6', 'CANT_UNLOAD_SKIP3': '07baa0734df26422',
-                 'OK_SKIP2': '003665d43bf06148', 'OK_SKIP3': 'b78411db034413d0'},
+    'GTHAI': {'PANEL': '5b24b5053be30916', 'CANT_UNLOAD': '81b14e2b79250ed1',
+              'OK_TO_UNLOAD': '9a0f32e24bd152be', 'CANT_UNLOAD_SKIP3': 'bf129eb31d4ae393',
+              'OK_SKIP2': '586219842b827ff2', 'OK_SKIP3': '81bfc8c5ba08ce9b'},
+    'GTHAI386': {'PANEL': '1bea47bf91763976', 'CANT_UNLOAD': '81b14e2b79250ed1',
+                 'OK_TO_UNLOAD': '9a0f32e24bd152be', 'CANT_UNLOAD_SKIP3': 'bf129eb31d4ae393',
+                 'OK_SKIP2': '586219842b827ff2', 'OK_SKIP3': '81bfc8c5ba08ce9b'},
 }
 cases = ('PANEL', 'CANT_UNLOAD', 'OK_TO_UNLOAD', 'CANT_UNLOAD_SKIP3', 'OK_SKIP2', 'OK_SKIP3')
 got = {name: run(name, ax=0x1000) for name in cases}
