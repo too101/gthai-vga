@@ -28,6 +28,7 @@ class Machine:
         self.index = 0
         self.crt_index = 0
         self.crt = [0]*32
+        self.pic_mask = 0xb8
         self.latch = [0]*4
         self.writes = []
         u.hook_add(UC_HOOK_INSN, self.out, None, 1, 0, UC_X86_INS_OUT)
@@ -45,8 +46,10 @@ class Machine:
         elif port == 0x3cf: self.gc[self.index]=value
         elif port == 0x3d4: self.crt_index=value
         elif port == 0x3d5: self.crt[self.crt_index]=value
+        elif port == 0x21: self.pic_mask=value
         else: raise AssertionError(f'unexpected OUT {port:04x}')
     def inp(self,u,port,size,_):
+        if port == 0x21: return self.pic_mask
         assert port == 0x3d5
         return self.crt[self.crt_index]
     def read(self,u,access,addr,size,value,_):

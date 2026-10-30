@@ -169,3 +169,9 @@
 - BLANK_TEXT_RUN แบ่งช่องว่างสีพื้นเดียวกันเป็นชุดละไม่เกิน 16 ช่อง (BLANK_CHUNK_CELLS) แล้วเรียก VGA_BLANK_RUN ต่อชุด ช่วง CLI ยาวสูงสุด 16×19 = 304 byte store แทน 1,520 ใน 3.33–3.41; คืน IF และสถานะ GC ระหว่างชุดตามเดิม
 - ต้นทุน: ช่องว่าง 80 ช่องใช้ GC OUT 15 ครั้งแทน 3 ครั้ง; ไฟล์ใหญ่ขึ้น 20 ไบต์ต่อรุ่น; ภาพทุก plane เทียบการวาดทีละช่องตรงกัน
 - เพิ่ม regression ใน verify_blank_runs.py ตรวจความยาวช่วงปิด interrupt, จำนวน OUT, พิกเซล และการคืน IF; ยังไม่ได้วัดความเร็วใหม่และยังไม่ได้ build output/*.COM ด้วย build.ps1
+
+- SCRL_UP1 (INT 10h AH=06h one-line scroll และการเลื่อนจาก TTY): คัดลอก latch 36,480 ไบต์เดิมทำภายใต้ CLI ต่อเนื่อง; ตอนนี้แบ่งเป็น 48 ชุดละ 760 ไบต์ (SCROLL_CHUNK_BYTES) และเปิดหน้าต่าง STI/NOP/CLI คั่นระหว่างชุด ให้ IRQ อื่น (serial, timer chain) ทำงานได้
+- ระหว่างภาพเลื่อนไม่ครบ ปิดทางเข้าโค้ดของไดรเวอร์เอง: ตั้ง TIMER_BUSY ให้ timer ข้าม UPDATE_VIDEO (ยังเรียก INT 8 เดิมต่อเพื่อนับ tick) และ mask IRQ1 ที่ 8259 เพื่อไม่ให้ hotkey/popup แทรก แล้วคืนค่า TIMER_BUSY และ mask เดิมทุกกรณีเมื่อจบ
+- ส่วนคัดลอก B800/VID_SAVE ด้วย REP MOVSW ใน SCRL_UP1 (2×1,920 WORD) ยังอยู่ใต้ CLI; ต้นทุน: OUT เพิ่ม 96 ครั้งต่อการเลื่อนหนึ่งบรรทัด ไฟล์ใหญ่ขึ้นเล็กน้อย
+- เพิ่ม tests/verify_scroll_windows.py: ความยาวช่วง CLI ≤ 760 ไบต์, 47 หน้าต่าง IRQ, timer ถูกระงับและ IRQ1 ถูก mask ทุกหน้าต่าง, GC กลับสภาพปกติ, คืน mask/TIMER_BUSY/BP/IF, และ SCRL_UP1 ครบทาง (B800, VID_SAVE, ทุก plane); ขยาย Machine ใน verify_vga.py ให้จำลองพอร์ต 21h
+- ยังไม่ได้ทดสอบกับ DOSBox-X หรือเครื่องจริง และไม่ได้วัดเวลา; mask 8259 ใช้พอร์ต 21h แบบ PC/AT มาตรฐาน

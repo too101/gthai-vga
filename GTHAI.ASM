@@ -6736,19 +6736,48 @@ VGA_GLYPH_RETURN:
          _POP DX,CX
          POPF
          RET
+; Latch scroll in bounded pieces. Only SCRL_UP1 calls this (IF=0); it clobbers
+; AX/BX/CX/DX/SI/DI/DS/ES, which SCRL_UP1 saves, and preserves BP.
+; While the image is partly scrolled our own timer redraw (TIMER_BUSY) and hotkeys
+; (IRQ1 masked at the PIC) cannot run; other IRQs get a window after every piece.
+SCROLL_CHUNK_BYTES = 760
+SCROLL_CHUNKS = 24*CELL_HEIGHT*80/SCROLL_CHUNK_BYTES
 L6314H:  
-         MOV   DX,GRAPHICS_ADDRESS_REG
-         MOV   AX,0105H
-         OUT   DX,AX
+         PUSH  BP
          MOV   AX,WORD PTR CS:[VIDBUF]
          MOV   DS,AX
          MOV   ES,AX
-         MOV   CX,24*CELL_HEIGHT*80
          MOV   DI,WORD PTR CS:[L0506H]
          MOV   SI,WORD PTR CS:[L0508H]
+         MOV   BH,BYTE PTR CS:[TIMER_BUSY]
+         MOV   BYTE PTR CS:[TIMER_BUSY],1
+         IN    AL,21H
+         MOV   BL,AL
+         OR    AL,2                    ;Mask IRQ1 (keyboard hotkeys)
+         OUT   21H,AL
+         MOV   DX,GRAPHICS_ADDRESS_REG
+         MOV   BP,SCROLL_CHUNKS
+SCROLL_PIECE:
+         MOV   AX,0105H
+         OUT   DX,AX
+         MOV   CX,SCROLL_CHUNK_BYTES
          REP MOVSB               ;VGA latch copies require byte accesses.
          MOV   AX,5
          OUT   DX,AX
+         DEC   BP
+         JZ    SCROLL_PIECES_DONE
+         STI                     ;Let other IRQs (serial, timer chain) run between pieces
+         NOP
+         CLI
+         JMP   SHORT SCROLL_PIECE
+SCROLL_PIECES_DONE:
+         IN    AL,21H
+         AND   AL,0FDH
+         AND   BL,2
+         OR    AL,BL                   ;Restore IRQ1 mask exactly as found
+         OUT   21H,AL
+         MOV   BYTE PTR CS:[TIMER_BUSY],BH
+         POP   BP
          RET
 
 P_0035 ENDP
