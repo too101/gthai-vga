@@ -6459,6 +6459,7 @@ VGA_CURSOR_HIDDEN:
 
 ; Draw BX source space cells, grouping only by background colour.
 ; Leaves SI/DI advanced and BX=0, preserving the remaining text state.
+BLANK_CHUNK_CELLS = 16     ;<=16*19 byte stores per CLI window
 BLANK_TEXT_RUN PROC NEAR
          CMP BYTE PTR CS:[ROW_PLAN_MODE],0
          JNE BTR_PLANNED
@@ -6497,7 +6498,20 @@ BTR_DRAW:
          INC DI
          JMP SHORT BTR_ADVANCE
 BTR_GROUP:
+; Bound each interrupt-masked window: VGA_BLANK_RUN restores GC state and IF per chunk.
+         PUSH CX
+BTR_CHUNK:
+         CMP CX,BLANK_CHUNK_CELLS
+         JBE BTR_LAST_CHUNK
+         PUSH CX
+         MOV CX,BLANK_CHUNK_CELLS
          CALL VGA_BLANK_RUN
+         POP CX
+         SUB CX,BLANK_CHUNK_CELLS
+         JMP SHORT BTR_CHUNK
+BTR_LAST_CHUNK:
+         CALL VGA_BLANK_RUN
+         POP CX
 BTR_ADVANCE:
          ADD SI,CX
          ADD SI,CX

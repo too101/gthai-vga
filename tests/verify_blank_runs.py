@@ -59,3 +59,34 @@ q.call('BLANK_IRQ_TEST',ax=0x1720,cx=80,di=0xe000)
 assert q.u.reg_read(UC_X86_REG_EFLAGS)&0x200
 assert count[0]==3,count
 print('PASS: 80-cell blank run uses 3 GC OUTs, stays atomic, and restores IF')
+
+# BLANK_TEXT_RUN must not hold one CLI window across a whole 80-cell run.
+BLANK_CHUNK_CELLS=16
+q=Machine();ref=Machine();state={'run':0,'max':0,'outs':0}
+def watch_code(u,address,size,_):
+    if u.reg_read(UC_X86_REG_EFLAGS)&0x200: state['run']=0
+def watch_write(u,access,addr,size,value,_):
+    if not u.reg_read(UC_X86_REG_EFLAGS)&0x200:
+        state['run']+=1;state['max']=max(state['max'],state['run'])
+def watch_out(u,port,size,value,_):
+    if port==0x3ce: state['outs']+=1
+q.u.hook_add(UC_HOOK_CODE,watch_code,begin=0x10000,end=0x1ffff)
+q.u.hook_add(UC_HOOK_MEM_WRITE,watch_write,begin=0xa0000,end=0xbffff)
+q.u.hook_add(UC_HOOK_INSN,watch_out,None,1,0,UC_X86_INS_OUT)
+start=0xec00;rel=(symbols['BLANK_TEXT_RUN']-(start+4))&65535
+q.u.mem_write(0x10000+start,b'\xfb\xe8'+rel.to_bytes(2,'little')+b'\xc3');symbols['BLANK_RUN_IRQ_TEST']=start
+for attr in (0x07,0x1f,0xe3):
+    for machine in (q,ref):
+        machine.planes=[bytearray([0x5a])*65536 for _ in range(4)]
+        machine.u.mem_write(0x10000+symbols['ROW_PLAN_MODE'],bytes(1))
+        machine.u.mem_write(0x19000,bytes([32,attr])*80)
+    state.update(run=0,max=0,outs=0);q.writes.clear()
+    q.call('BLANK_RUN_IRQ_TEST',bx=80,si=0x9000,di=0x7470)
+    for cell in range(80): ref.call('L6289H',ax=(attr<<8)|32,di=(0x7470+cell)&65535)
+    assert q.planes==ref.planes,hex(attr)
+    assert len(q.writes)==80*19,len(q.writes)
+    assert state['max']<=BLANK_CHUNK_CELLS*19,state
+    assert state['outs']==3*((80+BLANK_CHUNK_CELLS-1)//BLANK_CHUNK_CELLS),state
+    assert q.u.reg_read(UC_X86_REG_EFLAGS)&0x200
+    assert q.u.reg_read(UC_X86_REG_BX)==0 and q.u.reg_read(UC_X86_REG_DI)==(0x7470+80)&65535
+print('PASS: 80-cell blank run keeps each interrupt-masked window to 16 cells (304 byte stores), matches per-cell pixels and restores IF')

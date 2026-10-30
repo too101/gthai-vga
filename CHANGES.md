@@ -163,3 +163,9 @@
 - cache สี่ช่องเป็น fully associative LRU เพิ่ม rank 4 ไบต์และ hit flag 1 ไบต์ เก็บสี่แถวใด ๆ พร้อมกันได้ แถวที่ห้าแทนแถวที่ใช้นานที่สุด
 - เพิ่มเทสต์ zero bitmap work สำหรับภาพเดิม, overlay ทุกชนิดในตาราง 15 glyphs, LRU promotion/eviction และ custom INT10 dispatcher ที่ query ไม่ invalidate
 - ขนาด GTHAI.COM 34,172 ไบต์ / GTHAI386.COM 34,201 ไบต์; ผล DOSBox-X อยู่ใน docs/BENCHMARK.md
+
+## ยังไม่ปล่อย — จำกัดช่วงปิด interrupt ของช่องว่างเป็นชุด
+
+- BLANK_TEXT_RUN แบ่งช่องว่างสีพื้นเดียวกันเป็นชุดละไม่เกิน 16 ช่อง (BLANK_CHUNK_CELLS) แล้วเรียก VGA_BLANK_RUN ต่อชุด ช่วง CLI ยาวสูงสุด 16×19 = 304 byte store แทน 1,520 ใน 3.33–3.41; คืน IF และสถานะ GC ระหว่างชุดตามเดิม
+- ต้นทุน: ช่องว่าง 80 ช่องใช้ GC OUT 15 ครั้งแทน 3 ครั้ง; ไฟล์ใหญ่ขึ้น 20 ไบต์ต่อรุ่น; ภาพทุก plane เทียบการวาดทีละช่องตรงกัน
+- เพิ่ม regression ใน verify_blank_runs.py ตรวจความยาวช่วงปิด interrupt, จำนวน OUT, พิกเซล และการคืน IF; ยังไม่ได้วัดความเร็วใหม่และยังไม่ได้ build output/*.COM ด้วย build.ps1
